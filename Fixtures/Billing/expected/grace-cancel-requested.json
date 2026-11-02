@@ -1,0 +1,62 @@
+{
+  "derive": "unchanged",
+  "kinds": [],
+  "sourceDelta": 0,
+  "selection": {
+    "state": "grace",
+    "paidThrough": 1790812800,
+    "graceDeadline": 1791417600
+  },
+  "summary": {
+    "schemaVersion": 1,
+    "subscriptionID": "sub_fixture_A",
+    "status": "cancelling",
+    "paidThrough": 1790812800,
+    "renewsAt": null,
+    "cancellation": {
+      "state": "requested",
+      "accessEnds": 1791417600
+    },
+    "payment": {
+      "state": "failed",
+      "graceDeadline": 1791417600
+    },
+    "refund": "none",
+    "endReason": null
+  },
+  "semanticEffects": [],
+  "freshFieldsCheckedSeparately": [
+    "commit_nonce"
+  ],
+  "revisionDecision": {
+    "subscription": 1,
+    "notice": 1
+  },
+  "acceptedSnapshot": {
+    "canonical_json": "{\"adjustments\":[],\"disputes\":[],\"environment\":\"synthetic-sandbox\",\"fixture\":\"PAT-2646-snapshot-v1\",\"subscription\":{\"bindingID\":\"bind_fixture_A\",\"cancellation\":{\"effectiveAt\":null,\"state\":\"none\"},\"currentPeriod\":{\"endsAt\":1790812800,\"startsAt\":1759276800,\"transactionID\":\"txn_fixture_A1\"},\"id\":\"sub_fixture_A\",\"nextCharge\":{\"kind\":\"unavailable\",\"reason\":\"absent\"},\"renewalGeneration\":1,\"status\":\"pastDue\",\"updatedAt\":1790899200},\"transactions\":[{\"bindingID\":\"bind_fixture_A\",\"currency\":\"GBP\",\"id\":\"txn_fixture_A1\",\"origin\":\"existing\",\"period\":{\"endsAt\":1790812800,\"startsAt\":1759276800},\"priceID\":\"fixture-price-gbp-annual\",\"quantity\":1,\"status\":\"completed\",\"subscriptionID\":\"sub_fixture_A\",\"taxInclusive\":true,\"unitAmount\":1999,\"updatedAt\":1790899200},{\"bindingID\":\"bind_fixture_A\",\"currency\":\"GBP\",\"id\":\"txn_fixture_F1\",\"origin\":\"renewal\",\"period\":{\"endsAt\":1822348800,\"startsAt\":1790812800},\"priceID\":\"fixture-price-gbp-annual\",\"quantity\":1,\"status\":\"failed\",\"subscriptionID\":\"sub_fixture_A\",\"taxInclusive\":true,\"unitAmount\":1999,\"updatedAt\":1790899200}]}",
+    "canonical_sha256": "c73b3a2bc7c648e9e55dc3b9c80cae80354c73d07c058f56dfcb53d355fb4f83"
+  },
+  "acceptedEntities": [
+    {
+      "entity_kind": "subscription",
+      "entity_id": "sub_fixture_A",
+      "updated_at": 1790899200,
+      "canonical_json": "{\"bindingID\":\"bind_fixture_A\",\"cancellation\":{\"effectiveAt\":null,\"state\":\"none\"},\"currentPeriod\":{\"endsAt\":1790812800,\"startsAt\":1759276800,\"transactionID\":\"txn_fixture_A1\"},\"id\":\"sub_fixture_A\",\"nextCharge\":{\"kind\":\"unavailable\",\"reason\":\"absent\"},\"renewalGeneration\":1,\"status\":\"pastDue\",\"updatedAt\":1790899200}",
+      "canonical_sha256": "4123b9c879aa06e784902d3fb3e5f585ebf29ade288136623c65976d2a2bccc9"
+    },
+    {
+      "entity_kind": "transaction",
+      "entity_id": "txn_fixture_A1",
+      "updated_at": 1790899200,
+      "canonical_json": "{\"bindingID\":\"bind_fixture_A\",\"currency\":\"GBP\",\"id\":\"txn_fixture_A1\",\"origin\":\"existing\",\"period\":{\"endsAt\":1790812800,\"startsAt\":1759276800},\"priceID\":\"fixture-price-gbp-annual\",\"quantity\":1,\"status\":\"completed\",\"subscriptionID\":\"sub_fixture_A\",\"taxInclusive\":true,\"unitAmount\":1999,\"updatedAt\":1790899200}",
+      "canonical_sha256": "e03036c6901f271b77da18de611fa1238b8036f1d98fb1ce5b78740c5c84ab89"
+    },
+    {
+      "entity_kind": "transaction",
+      "entity_id": "txn_fixture_F1",
+      "updated_at": 1790899200,
+      "canonical_json": "{\"bindingID\":\"bind_fixture_A\",\"currency\":\"GBP\",\"id\":\"txn_fixture_F1\",\"origin\":\"renewal\",\"period\":{\"endsAt\":1822348800,\"startsAt\":1790812800},\"priceID\":\"fixture-price-gbp-annual\",\"quantity\":1,\"status\":\"failed\",\"subscriptionID\":\"sub_fixture_A\",\"taxInclusive\":true,\"unitAmount\":1999,\"updatedAt\":1790899200}",
+      "canonical_sha256": "e9ee56d5074119e8b76d36a18ba232c1ce24065546d48f9266ee1e03c8ca8425"
+    }
+  ]
+}

@@ -1,0 +1,264 @@
+{
+  "snapshot": {
+    "fixture": "PAT-2646-snapshot-v1",
+    "environment": "synthetic-sandbox",
+    "subscription": {
+      "id": "sub_fixture_A",
+      "bindingID": "bind_fixture_A",
+      "updatedAt": 1790553600,
+      "status": "active",
+      "renewalGeneration": 1,
+      "currentPeriod": {
+        "transactionID": "txn_fixture_A1",
+        "startsAt": 1759276800,
+        "endsAt": 1790812800
+      },
+      "cancellation": {
+        "state": "none",
+        "effectiveAt": null
+      },
+      "nextCharge": {
+        "kind": "unavailable",
+        "reason": "absent"
+      }
+    },
+    "transactions": [
+      {
+        "id": "txn_fixture_A1",
+        "subscriptionID": "sub_fixture_A",
+        "bindingID": "bind_fixture_A",
+        "updatedAt": 1790553600,
+        "status": "completed",
+        "origin": "existing",
+        "period": {
+          "startsAt": 1759276800,
+          "endsAt": 1790812800
+        },
+        "priceID": "fixture-price-gbp-annual",
+        "currency": "GBP",
+        "quantity": 1,
+        "unitAmount": 1999,
+        "taxInclusive": true
+      }
+    ],
+    "adjustments": [
+      {
+        "id": "adj_fixture_loss",
+        "transactionID": "txn_fixture_A1",
+        "updatedAt": 1790553600,
+        "kind": "chargeback",
+        "status": "reversed",
+        "amount": 1999,
+        "currency": "GBP",
+        "coverage": "full"
+      }
+    ],
+    "disputes": []
+  },
+  "ledger": {
+    "environment": "synthetic-sandbox",
+    "account": {
+      "accountID": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "revokedAt": null,
+      "entitlementRevision": 1
+    },
+    "entitlementSources": {
+      "accountID": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "trialStartedAt": null,
+      "trialEndsAt": null,
+      "betaInvited": false,
+      "betaEndsAt": null
+    },
+    "billing_subscription": [
+      {
+        "environment": "synthetic-sandbox",
+        "subscription_id": "sub_fixture_A",
+        "account_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "binding_id": "bind_fixture_A",
+        "mapping_revision": 1,
+        "revision": 1,
+        "provider_updated_at": 0,
+        "canonical_sha256": "e4ae2368a2b9935adb36f62bc0953b5e3b409860aaff398a4099fdd23d67fc21",
+        "canonical_json": "{\"bindingID\":\"bind_fixture_A\",\"cancellation\":{\"effectiveAt\":null,\"state\":\"none\"},\"currentPeriod\":null,\"id\":\"sub_fixture_A\",\"nextCharge\":{\"kind\":\"unavailable\",\"reason\":\"absent\"},\"renewalGeneration\":1,\"status\":\"active\",\"updatedAt\":0}",
+        "status": "active",
+        "cancellation_state": "none",
+        "cancellation_effective_at": null,
+        "renewal_generation": 1,
+        "notice_revision": 1,
+        "next_charge_json": "{\"kind\":\"unavailable\",\"reason\":\"absent\"}",
+        "commit_nonce": "11111111111111111111111111111111"
+      }
+    ],
+    "billing_existing_transaction": [
+      {
+        "environment": "synthetic-sandbox",
+        "subscription_id": "sub_fixture_A",
+        "account_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "transaction_id": "txn_fixture_A1",
+        "commit_nonce": "11111111111111111111111111111111"
+      }
+    ],
+    "billing_reconcile": [
+      {
+        "environment": "synthetic-sandbox",
+        "subscription_id": "sub_fixture_A",
+        "account_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "wanted": 1,
+        "done": 0,
+        "claim_generation": 1,
+        "claimed_wanted": 1,
+        "claim_fence": "11111111111111111111111111111111",
+        "claim_expires_at": 1790899500,
+        "read_generation": 2,
+        "failures": 0,
+        "commit_nonce": "11111111111111111111111111111111"
+      }
+    ],
+    "billing_event_consumed": [],
+    "billing_snapshot": [
+      {
+        "environment": "synthetic-sandbox",
+        "subscription_id": "sub_fixture_A",
+        "account_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "read_generation": 1,
+        "claim_generation": 1,
+        "claimed_wanted": 1,
+        "fence": "11111111111111111111111111111111",
+        "read_started_at": 1790294400,
+        "read_finished_at": 1790294400,
+        "canonical_sha256": "45f11e2c8ba7f77d8bd47319cc61dba5c758c8e64e15111722c128fe722aa125",
+        "canonical_json": "{\"adjustments\":[{\"amount\":1999,\"coverage\":\"full\",\"currency\":\"GBP\",\"id\":\"adj_fixture_loss\",\"kind\":\"chargeback\",\"status\":\"approved\",\"transactionID\":\"txn_fixture_A1\",\"updatedAt\":1790294400}],\"disputes\":[],\"environment\":\"synthetic-sandbox\",\"fixture\":\"PAT-2646-snapshot-v1\",\"subscription\":{\"bindingID\":\"bind_fixture_A\",\"cancellation\":{\"effectiveAt\":null,\"state\":\"none\"},\"currentPeriod\":{\"endsAt\":1790812800,\"startsAt\":1759276800,\"transactionID\":\"txn_fixture_A1\"},\"id\":\"sub_fixture_A\",\"nextCharge\":{\"kind\":\"unavailable\",\"reason\":\"absent\"},\"renewalGeneration\":1,\"status\":\"active\",\"updatedAt\":1790294400},\"transactions\":[{\"bindingID\":\"bind_fixture_A\",\"currency\":\"GBP\",\"id\":\"txn_fixture_A1\",\"origin\":\"existing\",\"period\":{\"endsAt\":1790812800,\"startsAt\":1759276800},\"priceID\":\"fixture-price-gbp-annual\",\"quantity\":1,\"status\":\"completed\",\"subscriptionID\":\"sub_fixture_A\",\"taxInclusive\":true,\"unitAmount\":1999,\"updatedAt\":1790294400}]}",
+        "commit_nonce": "11111111111111111111111111111111"
+      },
+      {
+        "environment": "synthetic-sandbox",
+        "subscription_id": "sub_fixture_A",
+        "account_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "read_generation": 2,
+        "claim_generation": 1,
+        "claimed_wanted": 1,
+        "fence": "11111111111111111111111111111111",
+        "read_started_at": 1790553600,
+        "read_finished_at": 1790553600,
+        "canonical_sha256": "35ede9e2aeecd998b8541c95bdfd1227cd52019c7bbcc01b753698f04aa2387a",
+        "canonical_json": "{\"adjustments\":[{\"amount\":1999,\"coverage\":\"full\",\"currency\":\"GBP\",\"id\":\"adj_fixture_loss\",\"kind\":\"chargeback\",\"status\":\"reversed\",\"transactionID\":\"txn_fixture_A1\",\"updatedAt\":1790553600}],\"disputes\":[],\"environment\":\"synthetic-sandbox\",\"fixture\":\"PAT-2646-snapshot-v1\",\"subscription\":{\"bindingID\":\"bind_fixture_A\",\"cancellation\":{\"effectiveAt\":null,\"state\":\"none\"},\"currentPeriod\":{\"endsAt\":1790812800,\"startsAt\":1759276800,\"transactionID\":\"txn_fixture_A1\"},\"id\":\"sub_fixture_A\",\"nextCharge\":{\"kind\":\"unavailable\",\"reason\":\"absent\"},\"renewalGeneration\":1,\"status\":\"active\",\"updatedAt\":1790553600},\"transactions\":[{\"bindingID\":\"bind_fixture_A\",\"currency\":\"GBP\",\"id\":\"txn_fixture_A1\",\"origin\":\"existing\",\"period\":{\"endsAt\":1790812800,\"startsAt\":1759276800},\"priceID\":\"fixture-price-gbp-annual\",\"quantity\":1,\"status\":\"completed\",\"subscriptionID\":\"sub_fixture_A\",\"taxInclusive\":true,\"unitAmount\":1999,\"updatedAt\":1790553600}]}",
+        "commit_nonce": "11111111111111111111111111111111"
+      }
+    ],
+    "billing_entity_version": [
+      {
+        "environment": "synthetic-sandbox",
+        "subscription_id": "sub_fixture_A",
+        "account_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "entity_kind": "adjustment",
+        "entity_id": "adj_fixture_loss",
+        "updated_at": 1790553600,
+        "read_generation": 2,
+        "canonical_sha256": "09aab2aca05b04067d8aabaf37db6db65c971519e088b7223e8f65ef3a011132",
+        "canonical_json": "{\"amount\":1999,\"coverage\":\"full\",\"currency\":\"GBP\",\"id\":\"adj_fixture_loss\",\"kind\":\"chargeback\",\"status\":\"reversed\",\"transactionID\":\"txn_fixture_A1\",\"updatedAt\":1790553600}",
+        "commit_nonce": "11111111111111111111111111111111"
+      }
+    ],
+    "billing_period": [
+      {
+        "environment": "synthetic-sandbox",
+        "subscription_id": "sub_fixture_A",
+        "account_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "transaction_id": "txn_fixture_A1",
+        "starts_at": 1759276800,
+        "ends_at": 1790812800,
+        "price_id": "fixture-price-gbp-annual",
+        "currency": "GBP",
+        "quantity": 1,
+        "unit_amount": 1999,
+        "tax_inclusive": 1,
+        "origin": "existing",
+        "commit_nonce": "11111111111111111111111111111111"
+      }
+    ],
+    "billing_period_end": [
+      {
+        "environment": "synthetic-sandbox",
+        "subscription_id": "sub_fixture_A",
+        "account_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "transaction_id": "txn_fixture_A1",
+        "adjustment_id": "adj_fixture_loss",
+        "reason": "charged_back",
+        "ended_at": 1790294400,
+        "commit_nonce": "11111111111111111111111111111111"
+      }
+    ],
+    "billing_restoration": [],
+    "billing_adjustment": [
+      {
+        "environment": "synthetic-sandbox",
+        "subscription_id": "sub_fixture_A",
+        "account_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "adjustment_id": "adj_fixture_loss",
+        "transaction_id": "txn_fixture_A1",
+        "kind": "chargeback",
+        "coverage": "full",
+        "amount": 1999,
+        "currency": "GBP",
+        "status": "reversed",
+        "updated_at": 1790553600,
+        "evidence_sha256": "5389b02f8183ad452b0b9ea24df5bb30500a2ccb30876d1658cee79ce8551c63",
+        "commit_nonce": "11111111111111111111111111111111"
+      }
+    ],
+    "billing_dispute": [],
+    "billing_grace": [],
+    "billing_grace_void": [],
+    "billing_renewal_stop": [
+      {
+        "environment": "synthetic-sandbox",
+        "subscription_id": "sub_fixture_A",
+        "account_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "renewal_generation": 1,
+        "state": "intent",
+        "dispatch_id": null,
+        "claimed_at": null,
+        "confirmation_sha256": null,
+        "revision": 1,
+        "commit_nonce": "11111111111111111111111111111111"
+      }
+    ],
+    "billing_stop_cause": [
+      {
+        "environment": "synthetic-sandbox",
+        "account_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "subscription_id": "sub_fixture_A",
+        "renewal_generation": 1,
+        "cause_kind": "chargeback",
+        "cause_id": "adj_fixture_loss",
+        "state": "enabled",
+        "evidence_sha256": "06525e59a2cfe4b51a411601d4b9fa5239158e2f8b5774da8884971e8249c9c6",
+        "acknowledgement_json": null,
+        "commit_nonce": "11111111111111111111111111111111"
+      }
+    ],
+    "billing_lifecycle_request": [],
+    "billing_review_confirmation": [
+      {
+        "confirmation_id": "99999999999999999999999999999999",
+        "operator_id": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "operator_session_id": "ffffffffffffffffffffffffffffffff",
+        "account_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "environment": "synthetic-sandbox",
+        "subscription_id": "sub_fixture_A",
+        "transaction_id": "txn_fixture_A1",
+        "chargeback_id": "adj_fixture_loss",
+        "reversal_evidence_sha256": "5389b02f8183ad452b0b9ea24df5bb30500a2ccb30876d1658cee79ce8551c63",
+        "original_ends_at": 1790812800,
+        "account_revision": 1,
+        "subscription_revision": 1,
+        "authenticated_at": 1790553590,
+        "expires_at": 1790554190,
+        "consumed_at": 1790553600,
+        "commit_nonce": "11111111111111111111111111111111"
+      }
+    ],
+    "billing_lifecycle_commit": []
+  },
+  "now": 1790553600
+}

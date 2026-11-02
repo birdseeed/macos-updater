@@ -1,0 +1,467 @@
+import Foundation
+import Darwin
+import ArtifactInspection
+
+// CHECK-ADDED PAT-2708: additive focused entry point; previous assertions unchanged.
+if Array(CommandLine.arguments.dropFirst()) == ["--pat-2708-pinned-signature"] {
+    runPinnedSignatureChecks()
+}
+
+// CHECK-ADDED PAT-2707: additive focused entry point; existing assertions unchanged.
+if Array(CommandLine.arguments.dropFirst()) == ["--pat-2707-unstapled"] {
+    runUnstapledEvidenceChecks()
+}
+
+// CHECK-ADDED PAT-2706: additive focused entry point; existing assertions unchanged.
+if Array(CommandLine.arguments.dropFirst()) == ["--pat-2706-mach-o"] {
+    runNativeArchitectureEvidenceChecks()
+    runMachOArchitectureChecks()
+}
+
+// CHECK-ADDED: isolate the spawn-failure probe before ordinary case registration.
+if Array(CommandLine.arguments.dropFirst()) == ["--probe-spawn-failure"] {
+    runSpawnFailureProbe()
+}
+
+struct CheckFailure: Error, CustomStringConvertible { let description: String }
+func expect(_ condition: @autoclosure () -> Bool, _ message: String) throws {
+    if !condition() { throw CheckFailure(description: message) }
+}
+func refuses(_ reason: InspectionFailure, _ action: () throws -> Void) throws {
+    do { try action() } catch let error as InspectionFailure {
+        try expect(error == reason, "Expected \(reason.rawValue), received \(error.rawValue)")
+        return
+    }
+    throw CheckFailure(description: "Expected refusal: \(reason.rawValue)")
+}
+func plist(_ value: [String: Any]) throws -> Data {
+    try PropertyListSerialization.data(fromPropertyList: value, format: .xml, options: 0)
+}
+func json(_ value: Any) throws -> Data { try JSONSerialization.data(withJSONObject: value, options: [.sortedKeys]) }
+func object(_ data: Data) throws -> [String: Any] {
+    guard let result = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+        throw CheckFailure(description: "Invalid test JSON object")
+    }
+    return result
+}
+let old = FirefoxTargets.pins[0]
+let appPath = "/fixture/private/mount/Firefox.app"
+let dmgPath = "/fixture/private/Firefox.dmg"
+func evidence(_ pin: TargetPin = FirefoxTargets.pins[0]) throws -> AppEvidence {
+    let commands: [String: CommandResult] = [
+        "imageVerify": .init(executable: "/usr/bin/hdiutil", arguments: ["verify", dmgPath], stdout: "verified CRC32 $FIXTURE\n"),
+        "signature": .init(executable: "/usr/bin/codesign", arguments: ["--verify", "--deep", "--strict", appPath]),
+        "identity": .init(executable: "/usr/bin/codesign", arguments: ["-dv", "--verbose=4", appPath],
+            stderr: "Identifier=org.mozilla.firefox\nAuthority=Developer ID Application: Mozilla Corporation (43AQ936H96)\nTeamIdentifier=43AQ936H96\n"),
+        "architectures": .init(executable: "/usr/bin/lipo", arguments: ["-archs", appPath + "/Contents/MacOS/firefox"], stdout: "x86_64 arm64\n"),
+        "gatekeeper": .init(executable: "/usr/sbin/spctl", arguments: ["--assess", "--type", "execute", "--verbose=4", appPath],
+            stderr: appPath + ": accepted\nsource=Notarized Developer ID\n"),
+        "ticket": .init(executable: "/usr/bin/xcrun", arguments: ["stapler", "validate", appPath], stdout: "The validate action worked!\n"),
+        "containerSignature": .init(executable: "/usr/bin/codesign", arguments: ["--verify", "--deep", "--strict", dmgPath], exitCode: 1, stderr: "code object is not signed at all\n"),
+        "containerGatekeeper": .init(executable: "/usr/sbin/spctl", arguments: ["--assess", "--type", "open", "--context", "context:primary-signature", "--verbose=4", dmgPath], exitCode: 3, stderr: "rejected\nsource=no usable signature\n"),
+        "containerTicket": .init(executable: "/usr/bin/xcrun", arguments: ["stapler", "validate", dmgPath], exitCode: 65, stdout: "does not have a ticket stapled to it\n")
+    ]
+    return AppEvidence(appPath: appPath, dmgPath: dmgPath,
+        infoPlist: try plist(["CFBundleIdentifier": pin.bundleID, "CFBundleShortVersionString": pin.version,
+                              "CFBundleExecutable": "firefox", "CFBundlePackageType": "APPL"]), commands: commands)
+}
+func withWorkspace(_ body: (URL) throws -> Void) throws {
+    // Resolve the platform's /var alias once for fixture creation only. Production
+    // APIs must still reject explicitly supplied symlinks, including ancestors.
+    guard let physical = realpath(FileManager.default.temporaryDirectory.path, nil) else {
+        throw CheckFailure(description: "Cannot resolve temporary fixture base")
+    }
+    defer { free(physical) }
+    let root = URL(fileURLWithPath: String(cString: physical)).appendingPathComponent("artifact-checks-\(UUID().uuidString)")
+    try FileManager.default.createDirectory(at: root, withIntermediateDirectories: false,
+                                           attributes: [.posixPermissions: 0o700])
+    defer { try? FileManager.default.removeItem(at: root) }
+    try body(root)
+}
+func attachment(_ paths: [String]) throws -> Data {
+    try plist(["system-entities": paths.enumerated().map { index, path in
+        ["dev-entry": "/dev/disk999s\(index + 1)", "mount-point": path, "volume-kind": "hfs"]
+    }])
+}
+final class MountRunner: InspectionCommandRunning {
+    var calls: [CommandResult] = []
+    var attachExit: Int32 = 0
+    var detachExit: Int32 = 0
+    var foreignMount = false
+    func run(executable: String, arguments: [String], limits: InspectionLimits) throws -> CommandResult {
+        let result: CommandResult
+        if arguments.first == "attach" {
+            guard let index = arguments.firstIndex(of: "-mountpoint"), index + 1 < arguments.count else {
+                throw CheckFailure(description: "Attach lacks explicit owned mountpoint")
+            }
+            let path = foreignMount ? "/Volumes/Unrelated" : arguments[index + 1]
+            result = .init(executable: executable, arguments: arguments, exitCode: attachExit,
+                           stdout: String(decoding: try attachment([path]), as: UTF8.self))
+        } else {
+            result = .init(executable: executable, arguments: arguments,
+                           exitCode: arguments.first == "detach" ? detachExit : 0)
+        }
+        calls.append(result)
+        return result
+    }
+}
+
+var cases: [(String, () throws -> Void)] = []
+@MainActor func check(_ name: String, _ action: @escaping () throws -> Void) { cases.append((name, action)) }
+
+if Array(CommandLine.arguments.dropFirst()) == ["--size-policy"] {
+    addSizePolicyChecks()
+    var failures = 0
+    for (name, action) in cases {
+        do { try action(); print("PASS fixture: \(name)") }
+        catch { failures += 1; print("FAIL fixture: \(name): \(error)") }
+    }
+    print("PAT-2709 artifact size: \(cases.count) cases, \(failures) failures")
+    exit(failures == 0 ? 0 : 1)
+}
+addSizePolicyChecks()
+
+for pin in FirefoxTargets.pins {
+    check("exact target \(pin.version)") {
+        let found = try FirefoxTargets.select(version: pin.version)
+        try expect(found == pin, "Target must match every reviewed pin")
+    }
+    check("official HTTPS URL \(pin.version)") {
+        try DownloadPolicy.validate(hops: [pin.url], pin: pin, receivedBytes: pin.byteLength, elapsedSeconds: 10)
+    }
+    check("payload passes separately from unsigned DMG \(pin.version)") {
+        let result = try EvidenceEvaluator.evaluateFixture(evidence(pin), pin: pin)
+        try expect(result.appChecksPassed, "Valid app fixture must pass")
+        try expect(!result.containerSignaturePassed && !result.containerGatekeeperPassed && !result.containerTicketPassed,
+                   "Unsigned-container failures must remain separate")
+        try expect(result.origin == .fixture && !result.freshOSValidation && !result.installationAuthorized,
+                   "Fixtures cannot grant fresh OS or installation authority")
+    }
+}
+for version in ["latest", "157", "0157.0", "157.0.0", "157.0beta", "158.0", "157.0\n"] {
+    check("unknown target \(String(reflecting: version))") {
+        try refuses(.unknownTarget) { _ = try FirefoxTargets.select(version: version) }
+    }
+}
+let unsafeURLs = [
+    old.url.replacingOccurrences(of: "https:", with: "http:"),
+    old.url.replacingOccurrences(of: "archive.mozilla.org", with: "archive.mozilla.org.evil.example"),
+    old.url.replacingOccurrences(of: "archive.mozilla.org", with: "evil.example@archive.mozilla.org"),
+    old.url.replacingOccurrences(of: "archive.mozilla.org", with: "archive.mozilla.org:443"),
+    old.url.replacingOccurrences(of: "archive.mozilla.org", with: "archive.mozilla.org."),
+    old.url.replacingOccurrences(of: "/mac/", with: "/../mac/"),
+    old.url.replacingOccurrences(of: "/mac/", with: "/%2e%2e/mac/"),
+    old.url.replacingOccurrences(of: "/mac/", with: "/%252e%252e/mac/"),
+    old.url.replacingOccurrences(of: "/mac/", with: "/%2fmac/"),
+    old.url.replacingOccurrences(of: "/mac/", with: "//mac/"),
+    old.url + "?download=1", old.url + "#trusted", old.url + "\n", "file:///etc/hosts", "//archive.mozilla.org/file.dmg",
+    old.url.replacingOccurrences(of: "/mac/", with: "\\mac/")
+]
+for (index, url) in unsafeURLs.enumerated() {
+    check("unsafe initial URL \(index)") {
+        try refuses(.unsafeURL) { try DownloadPolicy.validate(hops: [url], pin: old, receivedBytes: 0, elapsedSeconds: 0) }
+    }
+    check("unsafe redirect \(index)") {
+        try refuses(.unsafeURL) { try DownloadPolicy.validate(hops: [old.url, url], pin: old, receivedBytes: 0, elapsedSeconds: 0) }
+    }
+}
+check("same-host safe redirect remains bounded") {
+    try DownloadPolicy.validate(hops: [old.url, old.url], pin: old, receivedBytes: old.byteLength, elapsedSeconds: 1)
+}
+check("wrong initial official release") {
+    try refuses(.unsafeURL) { try DownloadPolicy.validate(hops: [FirefoxTargets.pins[1].url], pin: old, receivedBytes: 0, elapsedSeconds: 0) }
+}
+check("missing URL chain") {
+    try refuses(.unsafeURL) { try DownloadPolicy.validate(hops: [], pin: old, receivedBytes: 0, elapsedSeconds: 0) }
+}
+check("redirect limit") {
+    try refuses(.redirectLimit) { try DownloadPolicy.validate(hops: Array(repeating: old.url, count: 5), pin: old, receivedBytes: 0, elapsedSeconds: 0) }
+}
+for (name, bytes, seconds) in [("time", Int64(0), 181.0), ("bytes", Int64(170_000_001), 1.0),
+                              ("pinned length overflow", old.byteLength + 1, 1.0), ("negative bytes", Int64(-1), 1.0),
+                              ("negative time", Int64(0), -1.0), ("nonfinite time", Int64(0), Double.infinity)] {
+    check("download bound \(name)") {
+        try refuses(.downloadLimit) { try DownloadPolicy.validate(hops: [old.url], pin: old, receivedBytes: bytes, elapsedSeconds: seconds) }
+    }
+}
+
+let abcDigest = "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+func verifyABC(_ path: String) throws { try ArtifactBytes.verify(path: path, expectedSHA256: abcDigest, expectedLength: 3) }
+check("exact local bytes read without mutation") {
+    try withWorkspace { root in
+        let path = root.appendingPathComponent("artifact.dmg")
+        try Data("abc".utf8).write(to: path)
+        try verifyABC(path.path)
+        let after = try Data(contentsOf: path)
+        try expect(after == Data("abc".utf8), "Inspection changed input")
+    }
+}
+for (name, bytes, reason) in [("same-length tamper", "abd", InspectionFailure.digestMismatch),
+                             ("truncation", "ab", .lengthMismatch), ("oversize", "abcd", .lengthMismatch)] {
+    check("local bytes \(name)") {
+        try withWorkspace { root in
+            let path = root.appendingPathComponent("artifact.dmg")
+            try Data(bytes.utf8).write(to: path)
+            try refuses(reason) { try verifyABC(path.path) }
+        }
+    }
+}
+check("directory refused without blocking") {
+    try withWorkspace { root in try refuses(.notRegularFile) { try verifyABC(root.path) } }
+}
+check("FIFO refused without blocking") {
+    try withWorkspace { root in
+        let path = root.appendingPathComponent("pipe").path
+        try expect(mkfifo(path, 0o600) == 0, "Cannot create FIFO fixture")
+        try refuses(.notRegularFile) { try verifyABC(path) }
+    }
+}
+for ancestor in [false, true] {
+    check(ancestor ? "ancestor symlink refused" : "final symlink refused") {
+        try withWorkspace { root in
+            let file = root.appendingPathComponent("real.dmg")
+            let alias = root.appendingPathComponent("alias")
+            try Data("abc".utf8).write(to: file)
+            try FileManager.default.createSymbolicLink(at: alias, withDestinationURL: ancestor ? root : file)
+            try refuses(.unsafePath) { try verifyABC(ancestor ? alias.appendingPathComponent("real.dmg").path : alias.path) }
+        }
+    }
+}
+for path in ["relative.dmg", "/tmp/../etc/hosts", "/tmp/./file.dmg", "/tmp//file.dmg", "/tmp/file\0.dmg"] {
+    check("unsafe local path \(String(reflecting: path))") { try refuses(.unsafePath) { try verifyABC(path) } }
+}
+check("missing local input") {
+    try withWorkspace { root in try refuses(.unsafePath) { try verifyABC(root.appendingPathComponent("absent").path) } }
+}
+
+func changedEvidence(_ change: (inout AppEvidence) throws -> Void) throws -> AppEvidence {
+    var item = try evidence(); try change(&item); return item
+}
+@MainActor func rejectsEvidence(_ name: String, _ reason: InspectionFailure, _ change: @escaping (inout AppEvidence) throws -> Void) {
+    check(name) { try refuses(reason) { _ = try EvidenceEvaluator.evaluateFixture(changedEvidence(change), pin: old) } }
+}
+for key in ["imageVerify", "signature", "identity", "architectures", "gatekeeper", "ticket", "containerSignature", "containerGatekeeper", "containerTicket"] {
+    rejectsEvidence("missing command \(key)", .missingEvidence) { $0.commands.removeValue(forKey: key) }
+}
+for key in ["imageVerify", "signature", "identity", "architectures", "gatekeeper", "ticket"] {
+    rejectsEvidence("nonzero exit despite good output \(key)", .commandFailed) { $0.commands[key]!.exitCode = 1 }
+    rejectsEvidence("timeout despite zero exit \(key)", .commandTimedOut) { $0.commands[key]!.timedOut = true }
+    rejectsEvidence("truncated output \(key)", .outputLimit) { $0.commands[key]!.outputExceeded = true }
+}
+rejectsEvidence("codesign wrong team", .wrongTeam) { $0.commands["identity"]!.stderr = "Identifier=org.mozilla.firefox\nTeamIdentifier=WRONGTEAM\n" }
+rejectsEvidence("codesign missing team", .wrongTeam) { $0.commands["identity"]!.stderr = "Identifier=org.mozilla.firefox\n" }
+rejectsEvidence("codesign conflicting teams", .wrongTeam) { $0.commands["identity"]!.stderr += "TeamIdentifier=WRONGTEAM\n" }
+rejectsEvidence("codesign mismatched identity", .wrongBundle) { $0.commands["identity"]!.stderr = "Identifier=org.fake.firefox\nTeamIdentifier=43AQ936H96\n" }
+rejectsEvidence("signature invocation omits deep strict", .invalidMetadata) { $0.commands["signature"]!.arguments = ["--verify", appPath] }
+rejectsEvidence("signature invocation substitutes executable", .invalidMetadata) { $0.commands["signature"]!.executable = "/bin/true" }
+rejectsEvidence("signature invocation targets another bundle", .invalidMetadata) { $0.commands["signature"]!.arguments[3] = "/Applications/Firefox.app" }
+rejectsEvidence("gatekeeper invoked for container instead of app", .invalidMetadata) { $0.commands["gatekeeper"]!.arguments[2] = "open" }
+for text in ["arm64\n", "x86_64\n", "arm64 x86_64 ppc\n", "arm64 arm64 x86_64\n", ""] {
+    rejectsEvidence("architecture mismatch \(String(reflecting: text))", .wrongArchitecture) { $0.commands["architectures"]!.stdout = text }
+}
+for text in [appPath + ": rejected\nsource=Notarized Developer ID\n", appPath + ": accepted\nsource=Developer ID\n",
+             "assessment unavailable\n", "not accepted\nsource=Notarized Developer ID\n",
+             "/other.app: accepted\nsource=Notarized Developer ID\n", ""] {
+    rejectsEvidence("notarisation refusal \(String(reflecting: text))", .notarizationRejected) { $0.commands["gatekeeper"]!.stderr = text }
+}
+rejectsEvidence("contradictory notarisation output", .notarizationRejected) { $0.commands["gatekeeper"]!.stderr += appPath + ": rejected\n" }
+rejectsEvidence("stapler output unavailable despite zero", .ticketRejected) { $0.commands["ticket"]!.stdout = "Unable to validate ticket\n" }
+for version in ["157.0.1", "0157.0", "157.0beta", "157.0\n", "", "157..0"] {
+    rejectsEvidence("exact numeric dotted version \(String(reflecting: version))", .wrongVersion) {
+        $0.infoPlist = try plist(["CFBundleIdentifier": old.bundleID, "CFBundleShortVersionString": version,
+                                 "CFBundleExecutable": "firefox", "CFBundlePackageType": "APPL"])
+    }
+}
+rejectsEvidence("wrong plist bundle", .wrongBundle) {
+    $0.infoPlist = try plist(["CFBundleIdentifier": "org.fake.firefox", "CFBundleShortVersionString": old.version,
+                             "CFBundleExecutable": "firefox", "CFBundlePackageType": "APPL"])
+}
+rejectsEvidence("malformed plist", .invalidMetadata) { $0.infoPlist = Data("not plist".utf8) }
+rejectsEvidence("unsafe bundle executable", .invalidMetadata) {
+    $0.infoPlist = try plist(["CFBundleIdentifier": old.bundleID, "CFBundleShortVersionString": old.version,
+                             "CFBundleExecutable": "../../malicious", "CFBundlePackageType": "APPL"])
+}
+rejectsEvidence("missing OS build", .invalidMetadata) { $0.osBuild = "" }
+rejectsEvidence("missing observation timestamp", .invalidMetadata) { $0.observedAt = "" }
+rejectsEvidence("impossible command timestamp", .invalidMetadata) { $0.commands["signature"]!.finishedAt = "2026-10-06T14:35:33Z" }
+check("replayed evidence never claims fresh OS checks") {
+    let data = try JSONEncoder().encode(evidence())
+    let result = try EvidenceEvaluator.replay(data, pin: old)
+    try expect(result.appChecksPassed && result.origin == .replayed && !result.freshOSValidation && !result.installationAuthorized,
+               "Replay must identify cached evidence and retain installation boundary")
+}
+check("self-asserted success without observations refused") {
+    try refuses(.invalidRecord) {
+        _ = try EvidenceEvaluator.replay(json(["appChecksPassed": true, "freshOSValidation": true,
+                                               "installationAuthorized": true]), pin: old)
+    }
+}
+check("replayed contradictory raw evidence refused") {
+    var item = try evidence(); item.commands["signature"]!.exitCode = 1
+    try refuses(.commandFailed) { _ = try EvidenceEvaluator.replay(JSONEncoder().encode(item), pin: old) }
+}
+
+let checkout = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+let recordPath = checkout.appendingPathComponent("docs/firefox-artifact-evidence.json")
+check("reviewed pinned record") {
+    let result = try FirefoxTargets.verifyRecord(Data(contentsOf: recordPath))
+    try expect(result == FirefoxTargets.pins, "Record must match both immutable targets")
+}
+for (name, mutate) in [
+    ("wrong schema", { (doc: inout [String: Any]) in doc["schemaVersion"] = 2 }),
+    ("self-asserted trust", { (doc: inout [String: Any]) in doc["verified"] = true }),
+    ("missing pin", { (doc: inout [String: Any]) in doc["targets"] = [] }),
+    ("duplicate pin", { (doc: inout [String: Any]) in
+        let rows = doc["targets"] as! [[String: Any]]; doc["targets"] = [rows[0], rows[0]]
+    }),
+    ("changed digest", { (doc: inout [String: Any]) in
+        var rows = doc["targets"] as! [[String: Any]]; rows[0]["sha256"] = String(repeating: "0", count: 64); doc["targets"] = rows
+    }),
+    ("changed URL", { (doc: inout [String: Any]) in
+        var rows = doc["targets"] as! [[String: Any]]; rows[0]["url"] = "https://example.org/file.dmg"; doc["targets"] = rows
+    }),
+    ("changed byte length", { (doc: inout [String: Any]) in
+        var rows = doc["targets"] as! [[String: Any]]; rows[0]["byteLength"] = 161304639; doc["targets"] = rows
+    }),
+    ("changed team", { (doc: inout [String: Any]) in
+        var rows = doc["targets"] as! [[String: Any]]; rows[0]["teamID"] = "WRONG"; doc["targets"] = rows
+    })
+] {
+    check("pinned record \(name)") {
+        var doc = try object(Data(contentsOf: recordPath)); mutate(&doc)
+        try refuses(.invalidRecord) { _ = try FirefoxTargets.verifyRecord(json(doc)) }
+    }
+}
+for data in [Data("null".utf8), Data("{".utf8), Data("{\"schemaVersion\":1,\"schemaVersion\":2}".utf8)] {
+    check("malformed or ambiguous pinned record \(String(decoding: data, as: UTF8.self))") {
+        try refuses(.invalidRecord) { _ = try FirefoxTargets.verifyRecord(data) }
+    }
+}
+
+check("mount plist identifies only owned mount") {
+    let mount = "/private/fixture/mount"
+    let result = try ReadOnlyMount.validateAttachment(attachment([mount]), ownedMountPath: mount)
+    try expect(result == mount, "Return only the owned mount path")
+}
+for paths in [[], ["/Volumes/Unrelated"], ["/private/fixture/mount", "/Volumes/Unrelated"],
+              ["/private/fixture/mount", "/private/fixture/mount"], ["/private/fixture/mount/../outside"]] {
+    check("unexpected mount attachment \(paths)") {
+        try refuses(.invalidMount) {
+            _ = try ReadOnlyMount.validateAttachment(attachment(paths), ownedMountPath: "/private/fixture/mount")
+        }
+    }
+}
+check("malformed mount plist") {
+    try refuses(.invalidMount) {
+        _ = try ReadOnlyMount.validateAttachment(Data("not a plist".utf8), ownedMountPath: "/private/fixture/mount")
+    }
+}
+for failure in [false, true] {
+    check(failure ? "owned mount cleaned after payload refusal" : "owned mount cleaned after success") {
+        try withWorkspace { root in
+            let runner = MountRunner()
+            var bodyCalled = false
+            var usedMount: String?
+            let operation = {
+                _ = try ReadOnlyMount.withImage(dmgPath: dmgPath, workspace: root.path, runner: runner) { mount in
+                    bodyCalled = true; usedMount = mount
+                    try expect(mount.hasPrefix(root.path + "/"), "Mount must be private workspace child")
+                    if failure { throw InspectionFailure.wrongTeam }
+                    return "fixture inspected"
+                }
+            }
+            if failure { try refuses(.wrongTeam, operation) } else { try operation() }
+            try expect(bodyCalled, "Payload inspection was skipped")
+            let attachments = runner.calls.filter { $0.arguments.first == "attach" }
+            let detachments = runner.calls.filter { $0.arguments.first == "detach" }
+            try expect(attachments.count == 1 && detachments.count == 1, "Attach/detach must be paired exactly once")
+            try expect(attachments[0].executable == "/usr/bin/hdiutil", "Use the system image tool")
+            try expect(attachments[0].arguments.contains("-readonly") && attachments[0].arguments.contains("-nobrowse") &&
+                       attachments[0].arguments.contains("-plist"), "Attach must be readonly, nobrowse, plist")
+            try expect(detachments[0].arguments == ["detach", usedMount!], "Detach only the exact owned mount path")
+        }
+    }
+}
+check("foreign mount never inspected or detached") {
+    try withWorkspace { root in
+        let runner = MountRunner(); runner.foreignMount = true
+        var bodyCalled = false
+        try refuses(.invalidMount) {
+            _ = try ReadOnlyMount.withImage(dmgPath: dmgPath, workspace: root.path, runner: runner) { _ in bodyCalled = true }
+        }
+        try expect(!bodyCalled, "Foreign mount must never be inspected")
+        try expect(!runner.calls.contains { $0.arguments.first == "detach" && $0.arguments.contains("/Volumes/Unrelated") },
+                   "Foreign mount must never be detached")
+    }
+}
+check("cleanup failure reported") {
+    try withWorkspace { root in
+        let runner = MountRunner(); runner.detachExit = 1
+        try refuses(.cleanupFailed) {
+            _ = try ReadOnlyMount.withImage(dmgPath: dmgPath, workspace: root.path, runner: runner) { _ in "ok" }
+        }
+    }
+}
+check("attach nonzero exit prevents payload use") {
+    try withWorkspace { root in
+        let runner = MountRunner(); runner.attachExit = 1
+        var bodyCalled = false
+        try refuses(.commandFailed) {
+            _ = try ReadOnlyMount.withImage(dmgPath: dmgPath, workspace: root.path, runner: runner) { _ in bodyCalled = true }
+        }
+        try expect(!bodyCalled, "Nonzero attach must not execute payload callback")
+    }
+}
+check("mount workspace symlink refused before command") {
+    try withWorkspace { root in
+        let alias = root.appendingPathComponent("alias")
+        try FileManager.default.createSymbolicLink(at: alias, withDestinationURL: root)
+        let runner = MountRunner()
+        try refuses(.unsafePath) {
+            _ = try ReadOnlyMount.withImage(dmgPath: dmgPath, workspace: alias.path, runner: runner) { _ in }
+        }
+        try expect(runner.calls.isEmpty, "Unsafe workspace must fail before command execution")
+    }
+}
+check("world-writable workspace refused before command") {
+    try withWorkspace { root in
+        try FileManager.default.setAttributes([.posixPermissions: 0o777], ofItemAtPath: root.path)
+        let runner = MountRunner()
+        try refuses(.unsafePath) {
+            _ = try ReadOnlyMount.withImage(dmgPath: dmgPath, workspace: root.path, runner: runner) { _ in }
+        }
+        try expect(runner.calls.isEmpty, "Non-private workspace must fail before command execution")
+    }
+}
+
+check("real command exit and separate stdout stderr captured") {
+    let result = try BoundedCommandRunner().run(executable: "/bin/sh",
+        arguments: ["-c", "printf 'out\\n'; printf 'err\\n' >&2; exit 7"], limits: .init())
+    try expect(result.exitCode == 7 && result.stdout == "out\n" && result.stderr == "err\n", "Actual exit and output must be retained")
+    try expect(!result.timedOut && !result.outputExceeded && !result.startedAt.isEmpty && !result.finishedAt.isEmpty,
+               "Retain timestamps and reliable completion state")
+}
+check("real command timeout terminates promptly") {
+    var limits = InspectionLimits(); limits.commandSeconds = 0.1
+    let started = Date()
+    let result = try BoundedCommandRunner().run(executable: "/bin/sleep", arguments: ["10"], limits: limits)
+    try expect(result.timedOut && result.exitCode != 0 && Date().timeIntervalSince(started) < 2, "Timed-out command must be stopped and reported")
+}
+check("real command output bound terminates both pipes") {
+    var limits = InspectionLimits(); limits.outputBytes = 1024; limits.commandSeconds = 2
+    let result = try BoundedCommandRunner().run(executable: "/bin/sh",
+        arguments: ["-c", "while :; do printf '012345678901234567890123456789'; printf '012345678901234567890123456789' >&2; done"], limits: limits)
+    try expect(result.outputExceeded && result.stdout.utf8.count + result.stderr.utf8.count <= 1024,
+               "Combined output must be bounded and excess must be reported")
+}
+
+// CHECK-ADDED after parent authorisation: strengthen ambiguity and process limits.
+addStrengtheningChecks()
+
+var failures: [String] = []
+for (name, body) in cases {
+    do { try body() } catch { failures.append("\(name): \(error)") }
+}
+for failure in failures { print("FAIL \(failure)") }
+print("Artifact acceptance: \(cases.count) cases; \(failures.count) failures. Fixture checks are not live OS inspection.")
+if !failures.isEmpty { exit(1) }

@@ -1,0 +1,13 @@
+# Public, fixed test-only catalogue v2 vectors
+
+`TEST-ONLY-key.json` contains a deliberately public32-byte seed consisting entirely of0x42 and its Ed25519 public key. Never use it for production signing, release trust or key custody. Test signing is confined to the Node test helper and the independent Swift CryptoKit vector tool.
+
+The four golden revisions are empty, one entry, withdrawal-only and the same one-entry payload with signed JSON whitespace. Their exact payload/envelope bytes and message/signature/SHA256 values are checked independently by Node and Swift. Node deterministically reproduces golden signature bytes. CryptoKit verifies these exact golden signatures and emits its own signatures, which Node verifies independently. Swift proves the crypto byte contract only. Golden files were generated with Node built-in crypto, without importing the production verifier/encoder; the retained local Phase A generation script is evidence, not a runtime dependency.
+
+`invalid-examples.json` supplies bounded raw parser failures. The test suite independently builds further signed invalid payloads with the fixed test seed, so schema refusal cannot be explained by an invalid signature. `frozen-v1-sha256.json` records preserved v1 source, fixture, check and build bytes. No fixture proves production trust, fresh native validation, installation, publication or real continuity.
+
+Parent refinement before freeze: [Apple documents that CryptoKit signing randomises signatures](https://developer.apple.com/documentation/cryptokit/curve25519/signing/privatekey/signature(for:)) to guard side channels. Signature-byte equality between CryptoKit and Node is not asserted. The failed initial equality check and bounded repeatability probe are retained in local Phase A evidence. No custom cryptography or tool installation was introduced.
+
+Phase B implements only the pure fixture APIs described in the parent protocol README. CHECK-MODIFIED: the parent explicitly corrected and re-froze one no-mutation harness assertion: Node structuredClone turns Buffer into Uint8Array, so both sides now compare cloned values while separately preserving the original envelope object identity. Fixed goldens, all cryptographic expectations, schema/refusal cases and the24-file v1 manifest were unchanged. This is not a claim that no frozen check was edited.
+
+The frozen catalogue gate and four separate hostname-boundary cases are included in `./scripts/verify.sh`. The active PAT-2621 activation proofRefused incident is independent of these fixture checks; local green does not resolve it or establish merged-main CI success. Parent independent review and publication remain required.

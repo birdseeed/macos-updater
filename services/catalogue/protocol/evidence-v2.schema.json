@@ -1,0 +1,397 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$comment": "Descriptive only. No third-party schema engine runs. Runtime additionally enforces strict UTF8, no BOM/duplicate or unknown keys/lone surrogates; nonnegative safe integer tokens (no exponent/fraction/negative/-0), depth <=16, <=65536 raw bytes inclusive. Byte APIs accept only intrinsically copied Uint8Array/Buffer; reject Proxies without traps, SharedArrayBuffer and detached views. Encoder accepts only own enumerable data-property plain/null records and ordinary dense arrays, no getters/Proxies/classes/symbols/holes/cycles/callbacks/coercion. All data remain caller claims. Result scope is fixture-only with authenticated, policyAccepted, freshOSValidation, publicationAllowed and installationAllowed always false, including refusal results.",
+  "title": "Unsigned inspection observations v2",
+  "description": "Unsigned caller-supplied observations. No command execution, current OS truth, artifact/output digest contents, worker authentication, lease, policy, native validation or installation is established. Runtime checks finishedAt >= startedAt and finishedAt-startedAt <=86400, with no clock/freshness acceptance.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "kind",
+    "jobID",
+    "jobDescriptorSHA256",
+    "routeID",
+    "routeDigest",
+    "policyVersion",
+    "policyDigest",
+    "checkerVersion",
+    "checkerSourceSHA",
+    "architecture",
+    "artifact",
+    "finalSourceURL",
+    "osVersion",
+    "osBuild",
+    "startedAt",
+    "finishedAt",
+    "observations"
+  ],
+  "properties": {
+    "schema": {
+      "const": 2
+    },
+    "kind": {
+      "const": "inspection-observations"
+    },
+    "jobID": {
+      "$ref": "#/$defs/uuid"
+    },
+    "jobDescriptorSHA256": {
+      "$ref": "#/$defs/digest"
+    },
+    "routeID": {
+      "$ref": "#/$defs/identifier"
+    },
+    "routeDigest": {
+      "$ref": "#/$defs/digest"
+    },
+    "policyVersion": {
+      "$ref": "#/$defs/identifier"
+    },
+    "policyDigest": {
+      "$ref": "#/$defs/digest"
+    },
+    "checkerVersion": {
+      "$ref": "#/$defs/identifier"
+    },
+    "checkerSourceSHA": {
+      "$ref": "#/$defs/sourceSHA"
+    },
+    "architecture": {
+      "enum": [
+        "arm64",
+        "x86_64"
+      ]
+    },
+    "artifact": {
+      "$ref": "#/$defs/artifact"
+    },
+    "finalSourceURL": {
+      "$ref": "#/$defs/httpsURL"
+    },
+    "osVersion": {
+      "$ref": "#/$defs/identifier"
+    },
+    "osBuild": {
+      "$ref": "#/$defs/identifier"
+    },
+    "startedAt": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "finishedAt": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "observations": {
+      "type": "array",
+      "minItems": 6,
+      "maxItems": 6,
+      "prefixItems": [
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/observation"
+            },
+            {
+              "properties": {
+                "checkID": {
+                  "const": "codesign-integrity"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/observation"
+            },
+            {
+              "properties": {
+                "checkID": {
+                  "const": "codesign-identity"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/observation"
+            },
+            {
+              "properties": {
+                "checkID": {
+                  "const": "gatekeeper"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/observation"
+            },
+            {
+              "properties": {
+                "checkID": {
+                  "const": "notarisation"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/observation"
+            },
+            {
+              "properties": {
+                "checkID": {
+                  "const": "container-integrity"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/observation"
+            },
+            {
+              "properties": {
+                "checkID": {
+                  "const": "cleanup"
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "items": false
+    }
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}(?![\\s\\S])",
+      "maxLength": 64
+    },
+    "digest": {
+      "type": "string",
+      "minLength": 64,
+      "maxLength": 64,
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "sourceSHA": {
+      "type": "string",
+      "minLength": 40,
+      "maxLength": 40,
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "uuid": {
+      "type": "string",
+      "minLength": 36,
+      "maxLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "description": "Shape only; version and variant confer no authority."
+    },
+    "httpsURL": {
+      "type": "string",
+      "maxLength": 2048,
+      "pattern": "^https://[\\x21-\\x7e]+(?![\\s\\S])",
+      "description": "Descriptive base shape only. Runtime validates ASCII DNS hostname with alphanumeric label edges, 1..63 bytes per label and total <=253, including single-label names; refuses IP literals and WHATWG numeric IP spellings. Only literal https:// and optional :443. Optional path starts / and contains visible ASCII only; no userinfo/query/fragment/backslash/whitespace. Every percent escape must be a hex triplet. Segments which become . or .. after case-insensitive %2e replacement are refused. Other escapes are retained literally. Exact original spelling/case/explicit port/repeated slash preserved. No network, public-address, redirect or SSRF approval."
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sha256",
+        "length"
+      ],
+      "properties": {
+        "sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "length": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1099511627776
+        }
+      }
+    },
+    "output": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sha256",
+        "length"
+      ],
+      "properties": {
+        "sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "length": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1048576
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "length": {
+                "const": 0
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "sha256": {
+                "const": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+              }
+            }
+          }
+        }
+      ],
+      "description": "Unverified output descriptor only, never actual output bytes. Zero length requires the standard empty SHA256 even for completed observations."
+    },
+    "observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "checkID",
+        "outcome",
+        "exitCode",
+        "signal",
+        "stdout",
+        "stderr"
+      ],
+      "properties": {
+        "checkID": {
+          "enum": [
+            "codesign-integrity",
+            "codesign-identity",
+            "gatekeeper",
+            "notarisation",
+            "container-integrity",
+            "cleanup"
+          ]
+        },
+        "outcome": {
+          "enum": [
+            "completed",
+            "unavailable"
+          ]
+        },
+        "exitCode": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 255
+            }
+          ]
+        },
+        "signal": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 64
+            }
+          ]
+        },
+        "stdout": {
+          "$ref": "#/$defs/output"
+        },
+        "stderr": {
+          "$ref": "#/$defs/output"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "outcome": {
+                "const": "completed"
+              }
+            }
+          },
+          "then": {
+            "oneOf": [
+              {
+                "properties": {
+                  "exitCode": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 255
+                  },
+                  "signal": {
+                    "type": "null"
+                  }
+                }
+              },
+              {
+                "properties": {
+                  "exitCode": {
+                    "type": "null"
+                  },
+                  "signal": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 64
+                  }
+                }
+              }
+            ]
+          },
+          "else": {
+            "properties": {
+              "exitCode": {
+                "type": "null"
+              },
+              "signal": {
+                "type": "null"
+              },
+              "stdout": {
+                "properties": {
+                  "length": {
+                    "const": 0
+                  },
+                  "sha256": {
+                    "const": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+                  }
+                }
+              },
+              "stderr": {
+                "properties": {
+                  "length": {
+                    "const": 0
+                  },
+                  "sha256": {
+                    "const": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+                  }
+                }
+              }
+            }
+          }
+        }
+      ],
+      "description": "Raw typed outcome, not passed/approved/notarised. Exit 0 grants no authority. Unavailable observations and completed failures remain data."
+    }
+  }
+}

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
+  <channel>
+    <title>Inert fixture app</title>
+    <item>
+      <sparkle:version>2.0.0</sparkle:version>
+      <sparkle:shortVersionString>Display 200</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>15.0.0</sparkle:minimumSystemVersion>
+      <sparkle:maximumSystemVersion>27.9.9</sparkle:maximumSystemVersion>
+      <sparkle:channel>stable</sparkle:channel>
+      <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+      <enclosure url="https://downloads.example.test/app-2.zip" sparkle:edSignature="AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==" length="51" type="application/octet-stream" />
+    </item>
+  </channel>
+</rss>

@@ -1,0 +1,437 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Fixture-only catalogue v2 envelope and payload",
+  "$comment": "Descriptive schema only. Raw numeric tokens must match 0|[1-9][0-9]*; negative, fractional and exponent tokens refuse before JavaScript conversion. No third-party JSON Schema engine is run. Strict parsing, byte bounds, cross-field temporal/sequence/identity relationships and cryptographic verification are enforced separately. No installation/publication/native freshness authority.",
+  "$ref": "#/$defs/envelope",
+  "$defs": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)(\\.(0|[1-9][0-9]*)){0,7}$",
+      "description": "Each numeric component <=4294967295; comparator pads missing trailing components with zero. Enforced by dependency-free validator."
+    },
+    "hostname": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 253,
+      "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$",
+      "description": "Each label1..63 bytes. No IP literals, wildcard, trailing dot, port or uppercase. Validator enforces all constraints."
+    },
+    "identity": {
+      "type": "object",
+      "properties": {
+        "productID": {
+          "$ref": "#/$defs/id"
+        },
+        "releaseID": {
+          "$ref": "#/$defs/id"
+        },
+        "bundleID": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255,
+          "pattern": "^[A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)+$"
+        },
+        "teamID": {
+          "type": "string",
+          "pattern": "^[A-Z0-9]{10}$"
+        },
+        "edition": {
+          "$ref": "#/$defs/id"
+        },
+        "generation": {
+          "$ref": "#/$defs/id"
+        },
+        "channel": {
+          "const": "stable"
+        }
+      },
+      "required": [
+        "productID",
+        "releaseID",
+        "bundleID",
+        "teamID",
+        "edition",
+        "generation",
+        "channel"
+      ],
+      "additionalProperties": false
+    },
+    "release": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "$ref": "#/$defs/version"
+        },
+        "comparator": {
+          "const": "numeric-dotted-u32-v1"
+        }
+      },
+      "required": [
+        "version",
+        "comparator"
+      ],
+      "additionalProperties": false
+    },
+    "compatibility": {
+      "type": "object",
+      "properties": {
+        "platform": {
+          "const": "macOS"
+        },
+        "minimumOS": {
+          "$ref": "#/$defs/version"
+        },
+        "maximumOS": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/version"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "architectures": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "arm64",
+              "x86_64"
+            ]
+          },
+          "minItems": 1,
+          "maxItems": 2,
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "platform",
+        "minimumOS",
+        "maximumOS",
+        "architectures"
+      ],
+      "additionalProperties": false
+    },
+    "source": {
+      "type": "object",
+      "properties": {
+        "routeID": {
+          "$ref": "#/$defs/id"
+        },
+        "routeVersion": {
+          "$ref": "#/$defs/id"
+        },
+        "url": {
+          "type": "string",
+          "maxLength": 2048,
+          "pattern": "^https://",
+          "description": "At most2048 UTF8 bytes. Raw strict lowercase HTTPS authority and DNS host; no raw whitespace/control/backslash/userinfo/fragment or encoded hostname. Optional canonical decimal port1..65535. Preserve original text; no network operation or SSRF claim."
+        },
+        "redirectHosts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/hostname"
+          },
+          "minItems": 0,
+          "maxItems": 16,
+          "uniqueItems": true
+        },
+        "observedAt": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "routeID",
+        "routeVersion",
+        "url",
+        "redirectHosts",
+        "observedAt"
+      ],
+      "additionalProperties": false
+    },
+    "artifact": {
+      "type": "object",
+      "properties": {
+        "sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "byteLength": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8589934592
+        }
+      },
+      "required": [
+        "sha256",
+        "byteLength"
+      ],
+      "additionalProperties": false
+    },
+    "evidence": {
+      "type": "object",
+      "properties": {
+        "sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "byteLength": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4194304
+        },
+        "policyVersion": {
+          "$ref": "#/$defs/id"
+        },
+        "checkerVersion": {
+          "$ref": "#/$defs/id"
+        },
+        "environmentVersion": {
+          "$ref": "#/$defs/id"
+        },
+        "verifiedAt": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "validUntil": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "sha256",
+        "byteLength",
+        "policyVersion",
+        "checkerVersion",
+        "environmentVersion",
+        "verifiedAt",
+        "validUntil"
+      ],
+      "additionalProperties": false
+    },
+    "installer": {
+      "type": "object",
+      "properties": {
+        "method": {
+          "enum": [
+            "dmg-app",
+            "pkg",
+            "zip-app"
+          ]
+        },
+        "version": {
+          "$ref": "#/$defs/id"
+        },
+        "interaction": {
+          "enum": [
+            "ask",
+            "defer"
+          ]
+        },
+        "restart": {
+          "enum": [
+            "none",
+            "ask"
+          ]
+        },
+        "coordination": {
+          "const": "exclusive-app"
+        }
+      },
+      "required": [
+        "method",
+        "version",
+        "interaction",
+        "restart",
+        "coordination"
+      ],
+      "additionalProperties": false
+    },
+    "entry": {
+      "type": "object",
+      "properties": {
+        "identity": {
+          "$ref": "#/$defs/identity"
+        },
+        "release": {
+          "$ref": "#/$defs/release"
+        },
+        "compatibility": {
+          "$ref": "#/$defs/compatibility"
+        },
+        "source": {
+          "$ref": "#/$defs/source"
+        },
+        "artifact": {
+          "$ref": "#/$defs/artifact"
+        },
+        "evidence": {
+          "$ref": "#/$defs/evidence"
+        },
+        "installer": {
+          "$ref": "#/$defs/installer"
+        }
+      },
+      "required": [
+        "identity",
+        "release",
+        "compatibility",
+        "source",
+        "artifact",
+        "evidence",
+        "installer"
+      ],
+      "additionalProperties": false
+    },
+    "withdrawal": {
+      "type": "object",
+      "properties": {
+        "productID": {
+          "$ref": "#/$defs/id"
+        },
+        "releaseID": {
+          "$ref": "#/$defs/id"
+        },
+        "artifactSHA256": {
+          "$ref": "#/$defs/digest"
+        },
+        "reason": {
+          "$ref": "#/$defs/id"
+        },
+        "effectiveAt": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "productID",
+        "releaseID",
+        "artifactSHA256",
+        "reason",
+        "effectiveAt"
+      ],
+      "additionalProperties": false
+    },
+    "payload": {
+      "type": "object",
+      "properties": {
+        "schema": {
+          "const": "fixture-catalogue-v2"
+        },
+        "domain": {
+          "const": "im.patched.catalogue.v2"
+        },
+        "catalogueID": {
+          "$ref": "#/$defs/id"
+        },
+        "keyID": {
+          "$ref": "#/$defs/id"
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "issuedAt": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "expiresAt": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "minimumClientProtocol": {
+          "const": 2
+        },
+        "minimumClientBuild": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "policyDigest": {
+          "$ref": "#/$defs/digest"
+        },
+        "entries": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/entry"
+          },
+          "minItems": 0,
+          "maxItems": 1000
+        },
+        "withdrawals": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/withdrawal"
+          },
+          "minItems": 0,
+          "maxItems": 1000
+        }
+      },
+      "required": [
+        "schema",
+        "domain",
+        "catalogueID",
+        "keyID",
+        "sequence",
+        "issuedAt",
+        "expiresAt",
+        "minimumClientProtocol",
+        "minimumClientBuild",
+        "policyDigest",
+        "entries",
+        "withdrawals"
+      ],
+      "additionalProperties": false
+    },
+    "envelope": {
+      "type": "object",
+      "properties": {
+        "schema": {
+          "const": "fixture-catalogue-envelope-v2"
+        },
+        "algorithm": {
+          "const": "Ed25519"
+        },
+        "keyID": {
+          "$ref": "#/$defs/id"
+        },
+        "payload": {
+          "type": "string",
+          "contentEncoding": "base64",
+          "description": "Canonical padded base64 of exact <=1MiB payload bytes; no decoded reserialization before signature verification."
+        },
+        "signature": {
+          "type": "string",
+          "contentEncoding": "base64",
+          "minLength": 88,
+          "maxLength": 88,
+          "description": "Canonical padded base64 of exactly64 Ed25519 signature bytes."
+        }
+      },
+      "required": [
+        "schema",
+        "algorithm",
+        "keyID",
+        "payload",
+        "signature"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

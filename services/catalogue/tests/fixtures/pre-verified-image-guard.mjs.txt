@@ -1,0 +1,61 @@
+import assert from 'node:assert/strict';
+import { readdirSync, readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { dirname, join, relative } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+// Source-contract guard only. It cannot prove runtime origin isolation or clean-Mac behaviour.
+const root = join(dirname(fileURLToPath(import.meta.url)), '../..');
+const historicalTable = "func legacyExpectedCommands(app: String, dmg: String) -> [String: (String, [String])] {\n    [\"imageVerify\": (\"/usr/bin/hdiutil\", [\"verify\", dmg]),\n     \"signature\": (\"/usr/bin/codesign\", [\"--verify\", \"--deep\", \"--strict\", app]),\n     \"identity\": (\"/usr/bin/codesign\", [\"-dv\", \"--verbose=4\", app]),\n     \"architectures\": (\"/usr/bin/lipo\", [\"-archs\", app + \"/Contents/MacOS/firefox\"]),\n     \"gatekeeper\": (\"/usr/sbin/spctl\", [\"--assess\", \"--type\", \"execute\", \"--verbose=4\", app]),\n     \"ticket\": (\"/usr/bin/xcrun\", [\"stapler\", \"validate\", app]),\n     \"containerSignature\": (\"/usr/bin/codesign\", [\"--verify\", \"--deep\", \"--strict\", dmg]),\n     \"containerGatekeeper\": (\"/usr/sbin/spctl\", [\"--assess\", \"--type\", \"open\", \"--context\", \"context:primary-signature\", \"--verbose=4\", dmg]),\n     \"containerTicket\": (\"/usr/bin/xcrun\", [\"stapler\", \"validate\", dmg])]\n}";
+const optionalTable = "func replayExpectedStaplingCommands(app: String, dmg: String) -> [String: (String, [String])] {\n    [\"ticket\": (\"/usr/bin/xcrun\", [\"stapler\", \"validate\", app]),\n     \"containerTicket\": (\"/usr/bin/xcrun\", [\"stapler\", \"validate\", dmg])]\n}";
+const entry = "// CHECK-ADDED PAT-2707: additive focused entry point; existing assertions unchanged.\nif Array(CommandLine.arguments.dropFirst()) == [\"--pat-2707-unstapled\"] {\n    runUnstapledEvidenceChecks()\n}\n\n";
+const preserved = {
+  "Tests/ArtifactInspectionChecks/main.swift": "190f638605f0d617b568b92f6cba44155bee1ec4872c521ab3aef7baa81d46f8",
+  "Tests/ArtifactInspectionChecks/NativeArchitectureEvidenceChecks.swift": "83702072fe6186e7b28914459d0185eee5f00635593b6d57b9772ed7c3e29958"
+};
+const digest = value => createHash('sha256').update(value).digest('hex');
+const trustPath = 'Sources/ArtifactInspection/TrustEvidence.swift';
+const trust = readFileSync(join(root, trustPath), 'utf8');
+assert.equal(trust.split(historicalTable).length, 2, 'Historical schema1 table must be exact, unique and present');
+assert.equal(trust.split(optionalTable).length, 2, 'Only the exact data-only imported stapling table is exempted');
+// Parent implementation contract: exactly one optional-table call, scoped to imports.
+const importedBinding = 'let replayOnly = !legacy && origin != .live ? replayExpectedStaplingCommands(app: evidence.appPath, dmg: evidence.dmgPath) : [:]';
+assert.ok(trust.includes(importedBinding), 'Imported snapshot table needs explicit fixture/replay-only origin binding');
+const importedContract = `guard Set(evidence.commands.keys).isSubset(of: Set(expected.keys).union(replayOnly.keys)) else { throw InspectionFailure.invalidMetadata }
+    for (key, invocation) in replayOnly {
+        if let result = evidence.commands[key] {
+            guard result.executable == invocation.0, result.arguments == invocation.1 else { throw InspectionFailure.invalidMetadata }
+            try checkResult(result, requireSuccess: false)
+        }
+    }`;
+assert.ok(trust.includes(importedContract), 'Optional imports need exact metadata checks and closed allowed-key contract');
+assert.equal(trust.split('replayExpectedStaplingCommands(').length - 1, 2, 'No other optional-table call is permitted');
+function sources(directory) {
+  return readdirSync(directory, { withFileTypes: true }).flatMap(entry => {
+    const path = join(directory, entry.name);
+    return entry.isDirectory() ? sources(path) : entry.name.endsWith('.swift') ? [path] : [];
+  });
+}
+const failures = [];
+for (const path of sources(join(root, 'Sources'))) {
+  let text = readFileSync(path, 'utf8');
+  if (relative(root, path) === trustPath) text = text.replace(historicalTable, '').replace(optionalTable, '');
+  for (const [index, line] of text.split('\n').entries()) {
+    if (/xcrun|\blipo\b|\bstapler\b/i.test(line)) failures.push(`${relative(root, path)}:${index + 1}: ${line.trim()}`);
+  }
+}
+assert.deepEqual(failures, [], 'No productive CLT command references outside exact historical data tables');
+for (const [path, expected] of Object.entries(preserved)) {
+  let bytes = readFileSync(join(root, path));
+  if (path.endsWith('/main.swift')) {
+    let text = bytes.toString('utf8');
+    const pinnedEntry = "// CHECK-ADDED PAT-2708: additive focused entry point; previous assertions unchanged.\nif Array(CommandLine.arguments.dropFirst()) == [\"--pat-2708-pinned-signature\"] {\n    runPinnedSignatureChecks()\n}\n\n";
+    assert.equal(text.split(pinnedEntry).length, 2, 'Add exactly the unique PAT-2708 focused entry point');
+    assert.ok(text.indexOf(pinnedEntry) < text.indexOf(entry), 'PAT-2708 entry must precede the unchanged PAT-2707 entry');
+    text = text.replace(pinnedEntry, '');
+    assert.equal(text.split(entry).length, 2, 'Add exactly the named early entry point');
+    bytes = Buffer.from(text.replace(entry, ''), 'utf8');
+  }
+  assert.equal(digest(bytes), expected, `Frozen acceptance bytes changed: ${path}`);
+}
+console.log('PAT-2707 source contracts preserved. No native/live/clean-Mac execution proof.');

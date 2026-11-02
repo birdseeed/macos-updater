@@ -1,0 +1,1 @@
+{"catalogueID":"test-catalogue","domain":"im.patched.catalogue.v2","entries":[],"expiresAt":1800003600,"issuedAt":1800000000,"keyID":"test-key-1","minimumClientBuild":100,"minimumClientProtocol":2,"policyDigest":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","schema":"fixture-catalogue-v2","sequence":1,"withdrawals":[]}

@@ -1,0 +1,48 @@
+# PAT-2575 selective migration plan
+
+## Current foundation, 7 October 2026
+
+PRs #1 and #2 merged the reference bootstrap and cost-gate override. Andy's later “Continue running” authorises the bounded native reference-verification foundation described in [build-verification.md](build-verification.md): library, command, acceptance checks and minimal CI. The two source references and their provenance entries stay unchanged. Independent OpenCode/NVIDIA review and parent acceptance remain required before publication. No updater, installer, signing, catalogue trust or installed proof is supplied. Actual provider cost is unknown under the owner cost-reconciliation waiver; the £500 cap and separate purchase, credential and installation gates remain.
+
+## Community discovery preparation, 9 October 2026
+
+PAT-2619 separately proposes ongoing Installomator label/fragment metadata input through the [discovery contract](installomator-discovery-contract.md) and [I1–I3 future briefs](catalogue-service-implementation-plan.md#installomator-discovery-follow-ups-i1i3). The frozen historical engine/licence/recipe provenance below remains unchanged. Community input is inert untrusted data, with bounded import, verification, diagnosis, reviewed repair and reverification before incremental expansion; no upstream code merge, shell execution or trusted-engine replacement. Main snapshots, cadence and bounds are proposals requiring acceptance. No feed, schedule, download, signing or publication is enabled by this packet, and merged prose does not arm implementation follow-ups.
+
+## Historical preparation snapshot
+
+Everything below preserves the earlier preparation plan. Its unmerged PR, absent build/Git and cost-blocker statements are superseded by the current foundation and owner overrides above; they are not current execution instructions.
+
+The bootstrap publication sequence below is complete. The parent verified exact remote readback of the six files at reference commit `6b3d15f86b07760e97bb730837fb77c1f5442b87`, based on README-only root `f438acdc2f51bf9f861b72b279de477a27e9f3bd`, in draft PR #1. This historical snapshot supersedes the earlier pending-readback record; the PR remains unmerged. On 7 October 2026, Andy replied “Go” to the exact question authorising the parent to commit and publish the six reviewed bootstrap files in `Patched-LTD/patched-mac-app` and open a draft PR. GitHub MCP reads of the pinned updater source and the destination, observed empty before publication, succeeded on that date. No remaining access or discovered-capability blocker is claimed. Parent owns final acceptance and execution; merge and subsequent implementation retain separate authority gates.
+
+## Completed empty-repository sequence
+
+A PR cannot target a nonexistent `main`. The parent has identified GitHub MCP contents creation capable of creating the first file in an empty repository; the commit-creation tool requires a parent SHA and cannot create the root tree directly. Re-read destination state and branch policy immediately before publication. If it is no longer empty, inspect ownership/history and adapt through a reviewed branch rather than overwrite it.
+
+1. Publication authority was received on 7 October 2026 through Andy’s exact “Go” response: create the initial README-only root commit on `main`, create and update a named `codex/` review branch, publish its atomic reference commit and open a draft PR in `Patched-LTD/patched-mac-app`. The approved six files are `README.md`, `AGENTS.md`, `source-provenance.json`, `ThirdParty/Installomator/LICENSE`, `References/Legacy/firefox.recipe.json` and this plan. No local Git initialisation is part of this plan.
+2. Using GitHub MCP `github_create_file`, create only the accepted root `README.md` as the first atomic documentation commit on the default `main`. Confirm the resulting default branch, root commit SHA and exact README bytes. This creates a reviewable base; it contains no execution machinery. Branch-first is impossible before a root exists, and this authorised exception is documentation-only. The initial base commit itself cannot be proposed as a PR against an empty branch.
+3. Use `github_create_branch` from the verified `main` base. Prepare a selective tree using `github_create_tree`, then one `github_create_commit` with the verified root SHA as parent. Include the accepted `AGENTS.md`, `source-provenance.json`, `ThirdParty/Installomator/LICENSE`, `References/Legacy/firefox.recipe.json` and this plan. Leave README unchanged unless the parent deliberately includes an accepted correction. Do not import the old repo tree, history, full manifests or executable source.
+4. Use `github_update_ref` to advance only the named review branch to that new commit. Do not force-update refs. Open the draft PR targeting the now-existing `main`. Remote readback must show the exact selected files and licence/recipe hashes, branch parent and whole diff. Record the PR as preparation rather than product delivery. Parent owns PR attachment and Linear evidence.
+5. Review the full remote diff and verify provenance/JSON again. Any later executable changes require the independent NVIDIA review gate and a named full suite. Do not merge without explicit merge authority. A later production/release merge invokes the established deployment path and working-evidence requirement where applicable; documentation-only references do not imply a deployment, app build or installation.
+
+No executable script or CI is introduced by this sequence. The exact two blobs must retain their bytes. SHA-256 and Git blob IDs are in `source-provenance.json`; compute Git blob identity over `blob <byte-length>` plus NUL plus exact content. Parse both JSON files. Review all prose and use `git diff --check` only once a real Git diff exists; no Git repository exists in this local directory.
+
+## Spend before substantive implementation
+
+The initial incremental cap is £500. On 7 October 2026, Andy answered the question about actual incremental spend and existing commitments with the exact response “£0. Push it”. Record this as an owner-reported opening actual spend of £0 and commitments of £0, leaving an opening remaining cap of £500. It is not independently verified provider billing and does not establish the price of future usage. This supersedes the earlier unknown opening balance only. The same response authorises publication of this budget/progress documentation update on the existing PR branch; merge, app build, installation and credentials remain outside this scope.
+
+`docs/first-stage-cost-ledger.csv` records that opening balance and a £25 planning allocation for the next single bounded Mac proof preparation/assessment task. Actual spend £0 plus commitments £0 leave £500 of cap; subtracting the £25 allocation leaves £475 unreserved. The reserve is an allocation, not an expense, purchase, commitment or guaranteed provider price. Setting it records no new spend. Before starting that task, define its scope and stop boundary within the allocation; record requested/observed model, effort, context, elapsed time and provider-reported actual cost when known. Keep unknown future usage costs explicit and reconcile them rather than infer £0 from subscription access.
+Unknown actual cost or inability to bound the next task blocks substantial implementation. Stop when actual charges plus commitments would reach £500 and review evidence with Andy before further spend. Existing Apple membership is a governing fact, not an invented zero-cost entry. Short scoped leaf runs do not establish automatic budget enforcement.
+
+## Subsequent bounded scopes
+
+The PAT-2574 proof packet is the detailed acceptance contract. These tickets were prepared as blocked scopes, not permission to execute implementation:
+
+| Ticket | Dependency and required boundary |
+| --- | --- |
+| PAT-2580: official Firefox artifact proof | Depends on PAT-2575. Approved bounded inspection environment and artifact inspection authority; independently pin exact official old/new artifacts, redirects, digest, bundle, signer, versions, architectures and notarisation. No installation or launch. Reconcile cost first. |
+| PAT-2581: verification core | Depends on PAT-2580. Native Swift verification core, exact-byte catalogue contract, mandatory artifact checks and adversarial fixtures; introduce the full verification suite. Test-only trust, no production keys. Independent endpoint/security review. |
+| PAT-2582: native UI and reversible lifecycle | Depends on PAT-2581. Approved user-owned target policy and reviewed transaction/recovery design. Owner-triggered native UI with system font, staging/journal/path protection; no root helper or scheduler. |
+| PAT-2583: operator catalogue proof | Depends on PAT-2582. Independent official-artifact inspection and reviewed signing/publication boundaries, using deterministic test trust initially. No production host, database, payment or licence restoration. Nonfixture keys require separate authority. |
+| PAT-2584: installed success/refusal/recovery proof | Depends on PAT-2583. Explicit approved disposable host, destination and profile; reconciled spend, reviewed build provenance and appropriate signing/notarisation access. Observe every proof-matrix row and installed bytes. No everyday-host replacement or shipping claim. |
+
+Helper installation and scheduling remain separate unticketed future scopes after installed proof. They require a concrete brief, authenticated XPC/authorisation/path/race/recovery review, certificate access, owner privileged-install/scheduling authority and fresh cost reconciliation. No current source preparation supplies these approvals.

@@ -1,0 +1,22 @@
+{
+  "routeId": "fixture-route",
+  "policyVersion": "route-v1",
+  "identity": {
+    "productId": "fixture-app",
+    "bundleId": "test.example.fixture",
+    "developerTeamId": "AAAAAAAAAA",
+    "channel": "stable",
+    "edition": "standard-v1",
+    "architecture": "arm64"
+  },
+  "comparator": "sparkle-dotted-v1",
+  "feedURL": "https://updates.example.test/appcast.xml",
+  "allowedRedirectURLs": [
+    "https://cdn.example.test/appcast.xml"
+  ],
+  "artifactURLs": [
+    "https://downloads.example.test/app-2.zip"
+  ],
+  "minOS": "15.0.0",
+  "maxOS": "27.9.9"
+}

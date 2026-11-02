@@ -1,0 +1,16 @@
+{
+  "schema": "fixture-attempt-scenarios-v1",
+  "artifactBase64": "Zml4dHVyZSBhcnRpZmFjdCB2MQo=",
+  "checkerVersion": "checker-v1",
+  "environmentVersion": "environment-v1",
+  "capabilityVersion": "capability-v1",
+  "outcomes": [
+    "unavailable",
+    "fixture-admitted"
+  ],
+  "limits": {
+    "candidatesPerBatch": 10,
+    "attemptsPerCandidate": 3,
+    "activeMillisecondsPerBatch": 1800000
+  }
+}

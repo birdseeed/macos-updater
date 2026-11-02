@@ -1,0 +1,81 @@
+{
+  "derive": "delta",
+  "kinds": [
+    "observeDispute",
+    "updateSubscription"
+  ],
+  "sourceDelta": 0,
+  "selection": {
+    "state": "paid",
+    "paidThrough": 1790812800
+  },
+  "semanticEffects": [
+    {
+      "kind": "observeDispute",
+      "row": {
+        "environment": "synthetic-sandbox",
+        "subscription_id": "sub_fixture_A",
+        "account_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "transaction_id": "txn_fixture_A1",
+        "updated_at": 1790812700,
+        "dispute_id": "dsp_fixture_open",
+        "state": "open",
+        "evidence_sha256": "b4596ddd21603fc4a3c44c6043673a38d382a76f2b68a3c1322afc55f0fa6357"
+      }
+    },
+    {
+      "kind": "updateSubscription",
+      "row": {
+        "environment": "synthetic-sandbox",
+        "subscription_id": "sub_fixture_A",
+        "account_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "binding_id": "bind_fixture_A",
+        "mapping_revision": 1,
+        "provider_updated_at": 1790812700,
+        "status": "active",
+        "cancellation_state": "none",
+        "cancellation_effective_at": null,
+        "renewal_generation": 1,
+        "next_charge_json": "{\"kind\":\"unavailable\",\"reason\":\"absent\"}",
+        "canonical_json": "{\"bindingID\":\"bind_fixture_A\",\"cancellation\":{\"effectiveAt\":null,\"state\":\"none\"},\"currentPeriod\":{\"endsAt\":1790812800,\"startsAt\":1759276800,\"transactionID\":\"txn_fixture_A1\"},\"id\":\"sub_fixture_A\",\"nextCharge\":{\"kind\":\"unavailable\",\"reason\":\"absent\"},\"renewalGeneration\":1,\"status\":\"active\",\"updatedAt\":1790812700}",
+        "canonical_sha256": "2b0e204b79e81a7503612df44630766fa90574289ea663702c59b6f5e3510c5c",
+        "revision": 2,
+        "notice_revision": 1
+      }
+    }
+  ],
+  "freshFieldsCheckedSeparately": [
+    "commit_nonce"
+  ],
+  "revisionDecision": {
+    "subscription": 2,
+    "notice": 1
+  },
+  "acceptedSnapshot": {
+    "canonical_json": "{\"adjustments\":[],\"disputes\":[{\"id\":\"dsp_fixture_open\",\"state\":\"open\",\"transactionID\":\"txn_fixture_A1\",\"updatedAt\":1790812700}],\"environment\":\"synthetic-sandbox\",\"fixture\":\"PAT-2646-snapshot-v1\",\"subscription\":{\"bindingID\":\"bind_fixture_A\",\"cancellation\":{\"effectiveAt\":null,\"state\":\"none\"},\"currentPeriod\":{\"endsAt\":1790812800,\"startsAt\":1759276800,\"transactionID\":\"txn_fixture_A1\"},\"id\":\"sub_fixture_A\",\"nextCharge\":{\"kind\":\"unavailable\",\"reason\":\"absent\"},\"renewalGeneration\":1,\"status\":\"active\",\"updatedAt\":1790812700},\"transactions\":[{\"bindingID\":\"bind_fixture_A\",\"currency\":\"GBP\",\"id\":\"txn_fixture_A1\",\"origin\":\"existing\",\"period\":{\"endsAt\":1790812800,\"startsAt\":1759276800},\"priceID\":\"fixture-price-gbp-annual\",\"quantity\":1,\"status\":\"completed\",\"subscriptionID\":\"sub_fixture_A\",\"taxInclusive\":true,\"unitAmount\":1999,\"updatedAt\":1790812700}]}",
+    "canonical_sha256": "65aa63bdbadcb28c7938ef7ea0e26b617d53f8b0e5692eae9ced8e2d180ab25b"
+  },
+  "acceptedEntities": [
+    {
+      "entity_kind": "subscription",
+      "entity_id": "sub_fixture_A",
+      "updated_at": 1790812700,
+      "canonical_json": "{\"bindingID\":\"bind_fixture_A\",\"cancellation\":{\"effectiveAt\":null,\"state\":\"none\"},\"currentPeriod\":{\"endsAt\":1790812800,\"startsAt\":1759276800,\"transactionID\":\"txn_fixture_A1\"},\"id\":\"sub_fixture_A\",\"nextCharge\":{\"kind\":\"unavailable\",\"reason\":\"absent\"},\"renewalGeneration\":1,\"status\":\"active\",\"updatedAt\":1790812700}",
+      "canonical_sha256": "2b0e204b79e81a7503612df44630766fa90574289ea663702c59b6f5e3510c5c"
+    },
+    {
+      "entity_kind": "transaction",
+      "entity_id": "txn_fixture_A1",
+      "updated_at": 1790812700,
+      "canonical_json": "{\"bindingID\":\"bind_fixture_A\",\"currency\":\"GBP\",\"id\":\"txn_fixture_A1\",\"origin\":\"existing\",\"period\":{\"endsAt\":1790812800,\"startsAt\":1759276800},\"priceID\":\"fixture-price-gbp-annual\",\"quantity\":1,\"status\":\"completed\",\"subscriptionID\":\"sub_fixture_A\",\"taxInclusive\":true,\"unitAmount\":1999,\"updatedAt\":1790812700}",
+      "canonical_sha256": "bb8f73cb691d50acdfa25d1c4bb4bd48c82fe21feb95854078b64845e264a8e6"
+    },
+    {
+      "entity_kind": "dispute",
+      "entity_id": "dsp_fixture_open",
+      "updated_at": 1790812700,
+      "canonical_json": "{\"id\":\"dsp_fixture_open\",\"state\":\"open\",\"transactionID\":\"txn_fixture_A1\",\"updatedAt\":1790812700}",
+      "canonical_sha256": "a2349863b613bb89cc0047f631250224d19db4f5a7e92b8b464a2781edc8272c"
+    }
+  ]
+}

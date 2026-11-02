@@ -1,0 +1,47 @@
+{
+  "fixture": "PAT-2646-synthetic",
+  "cases": [
+    "existing-gbp",
+    "existing-usd",
+    "touching-future",
+    "overlapping",
+    "gap",
+    "renewal",
+    "failed-renewal",
+    "partial-refund",
+    "pending-refund",
+    "full-refund",
+    "chargeback",
+    "reversed-refund-held",
+    "reversed-chargeback-unreviewed",
+    "reversed-chargeback-reviewed",
+    "reversed-chargeback-expired",
+    "open-dispute",
+    "masked-grace",
+    "masked-grace-other-future",
+    "grace-refund-exposure",
+    "same-sub-recovery",
+    "same-sub-overlap",
+    "grace-held-anchor",
+    "grace-selection",
+    "grace-cancel-requested",
+    "grace-cancel-confirmed",
+    "next-charge-unavailable",
+    "next-charge-changed"
+  ],
+  "config": {
+    "fixture": "PAT-2646-synthetic",
+    "environment": "synthetic-sandbox",
+    "prices": {
+      "GBP": "fixture-price-gbp-annual",
+      "USD": "fixture-price-usd-annual"
+    },
+    "annual": {
+      "interval": "year",
+      "frequency": 1,
+      "quantity": 1,
+      "unitAmount": 1999,
+      "taxInclusive": true
+    }
+  }
+}

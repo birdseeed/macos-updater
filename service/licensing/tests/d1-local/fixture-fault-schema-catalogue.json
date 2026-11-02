@@ -1,0 +1,1362 @@
+{
+  "version": 1,
+  "creates": [
+    {
+      "id": "P3-001",
+      "family": "P3",
+      "name": "operator_test_required",
+      "table": "account_guard",
+      "operation": "UPDATE",
+      "when": null,
+      "mode": "IGNORE",
+      "sql": "CREATE TRIGGER operator_test_required BEFORE UPDATE ON account_guard BEGIN SELECT RAISE(IGNORE); END"
+    },
+    {
+      "id": "P3-002",
+      "family": "P3",
+      "name": "operator_test_required",
+      "table": "account_guard",
+      "operation": "UPDATE",
+      "when": null,
+      "mode": "ABORT",
+      "sql": "CREATE TRIGGER operator_test_required BEFORE UPDATE ON account_guard BEGIN SELECT RAISE(ABORT,'operator fault'); END"
+    },
+    {
+      "id": "P3-003",
+      "family": "P3",
+      "name": "operator_test_required",
+      "table": "account_nonce_history",
+      "operation": "INSERT",
+      "when": null,
+      "mode": "IGNORE",
+      "sql": "CREATE TRIGGER operator_test_required BEFORE INSERT ON account_nonce_history BEGIN SELECT RAISE(IGNORE); END"
+    },
+    {
+      "id": "P3-004",
+      "family": "P3",
+      "name": "operator_test_required",
+      "table": "account_nonce_history",
+      "operation": "INSERT",
+      "when": null,
+      "mode": "ABORT",
+      "sql": "CREATE TRIGGER operator_test_required BEFORE INSERT ON account_nonce_history BEGIN SELECT RAISE(ABORT,'operator fault'); END"
+    },
+    {
+      "id": "P3-005",
+      "family": "P3",
+      "name": "operator_test_required",
+      "table": "account_audit",
+      "operation": "INSERT",
+      "when": null,
+      "mode": "IGNORE",
+      "sql": "CREATE TRIGGER operator_test_required BEFORE INSERT ON account_audit BEGIN SELECT RAISE(IGNORE); END"
+    },
+    {
+      "id": "P3-006",
+      "family": "P3",
+      "name": "operator_test_required",
+      "table": "account_audit",
+      "operation": "INSERT",
+      "when": null,
+      "mode": "ABORT",
+      "sql": "CREATE TRIGGER operator_test_required BEFORE INSERT ON account_audit BEGIN SELECT RAISE(ABORT,'operator fault'); END"
+    },
+    {
+      "id": "P3-007",
+      "family": "P3",
+      "name": "operator_test_required",
+      "table": "support_request",
+      "operation": "UPDATE",
+      "when": null,
+      "mode": "IGNORE",
+      "sql": "CREATE TRIGGER operator_test_required BEFORE UPDATE ON support_request BEGIN SELECT RAISE(IGNORE); END"
+    },
+    {
+      "id": "P3-008",
+      "family": "P3",
+      "name": "operator_test_required",
+      "table": "support_request",
+      "operation": "UPDATE",
+      "when": null,
+      "mode": "ABORT",
+      "sql": "CREATE TRIGGER operator_test_required BEFORE UPDATE ON support_request BEGIN SELECT RAISE(ABORT,'operator fault'); END"
+    },
+    {
+      "id": "P3-009",
+      "family": "P3",
+      "name": "operator_test_required",
+      "table": "support_human_use",
+      "operation": "INSERT",
+      "when": null,
+      "mode": "IGNORE",
+      "sql": "CREATE TRIGGER operator_test_required BEFORE INSERT ON support_human_use BEGIN SELECT RAISE(IGNORE); END"
+    },
+    {
+      "id": "P3-010",
+      "family": "P3",
+      "name": "operator_test_required",
+      "table": "support_human_use",
+      "operation": "INSERT",
+      "when": null,
+      "mode": "ABORT",
+      "sql": "CREATE TRIGGER operator_test_required BEFORE INSERT ON support_human_use BEGIN SELECT RAISE(ABORT,'operator fault'); END"
+    },
+    {
+      "id": "P3-011",
+      "family": "P3",
+      "name": "operator_test_required",
+      "table": "support_audit",
+      "operation": "INSERT",
+      "when": null,
+      "mode": "IGNORE",
+      "sql": "CREATE TRIGGER operator_test_required BEFORE INSERT ON support_audit BEGIN SELECT RAISE(IGNORE); END"
+    },
+    {
+      "id": "P3-012",
+      "family": "P3",
+      "name": "operator_test_required",
+      "table": "support_audit",
+      "operation": "INSERT",
+      "when": null,
+      "mode": "ABORT",
+      "sql": "CREATE TRIGGER operator_test_required BEFORE INSERT ON support_audit BEGIN SELECT RAISE(ABORT,'operator fault'); END"
+    },
+    {
+      "id": "P3-013",
+      "family": "P3",
+      "name": "operator_test_required",
+      "table": "support_commit",
+      "operation": "INSERT",
+      "when": null,
+      "mode": "IGNORE",
+      "sql": "CREATE TRIGGER operator_test_required BEFORE INSERT ON support_commit BEGIN SELECT RAISE(IGNORE); END"
+    },
+    {
+      "id": "P3-014",
+      "family": "P3",
+      "name": "operator_test_required",
+      "table": "support_commit",
+      "operation": "INSERT",
+      "when": null,
+      "mode": "ABORT",
+      "sql": "CREATE TRIGGER operator_test_required BEFORE INSERT ON support_commit BEGIN SELECT RAISE(ABORT,'operator fault'); END"
+    },
+    {
+      "id": "P3-015",
+      "family": "P3",
+      "name": "operator_test_required",
+      "table": "accounts",
+      "operation": "UPDATE",
+      "when": null,
+      "mode": "IGNORE",
+      "sql": "CREATE TRIGGER operator_test_required BEFORE UPDATE ON accounts BEGIN SELECT RAISE(IGNORE); END"
+    },
+    {
+      "id": "P3-016",
+      "family": "P3",
+      "name": "operator_test_required",
+      "table": "accounts",
+      "operation": "UPDATE",
+      "when": null,
+      "mode": "ABORT",
+      "sql": "CREATE TRIGGER operator_test_required BEFORE UPDATE ON accounts BEGIN SELECT RAISE(ABORT,'operator fault'); END"
+    },
+    {
+      "id": "P3-017",
+      "family": "P3",
+      "name": "operator_test_required",
+      "table": "activation_slots",
+      "operation": "DELETE",
+      "when": null,
+      "mode": "IGNORE",
+      "sql": "CREATE TRIGGER operator_test_required BEFORE DELETE ON activation_slots BEGIN SELECT RAISE(IGNORE); END"
+    },
+    {
+      "id": "P3-018",
+      "family": "P3",
+      "name": "operator_test_required",
+      "table": "activation_slots",
+      "operation": "DELETE",
+      "when": null,
+      "mode": "ABORT",
+      "sql": "CREATE TRIGGER operator_test_required BEFORE DELETE ON activation_slots BEGIN SELECT RAISE(ABORT,'operator fault'); END"
+    },
+    {
+      "id": "P3-019",
+      "family": "P3",
+      "name": "operator_test_required",
+      "table": "activations",
+      "operation": "UPDATE",
+      "when": null,
+      "mode": "IGNORE",
+      "sql": "CREATE TRIGGER operator_test_required BEFORE UPDATE ON activations BEGIN SELECT RAISE(IGNORE); END"
+    },
+    {
+      "id": "P3-020",
+      "family": "P3",
+      "name": "operator_test_required",
+      "table": "activations",
+      "operation": "UPDATE",
+      "when": null,
+      "mode": "ABORT",
+      "sql": "CREATE TRIGGER operator_test_required BEFORE UPDATE ON activations BEGIN SELECT RAISE(ABORT,'operator fault'); END"
+    },
+    {
+      "id": "P3-021",
+      "family": "P3",
+      "name": "operator_test_required",
+      "table": "lease_heads",
+      "operation": "UPDATE",
+      "when": null,
+      "mode": "IGNORE",
+      "sql": "CREATE TRIGGER operator_test_required BEFORE UPDATE ON lease_heads BEGIN SELECT RAISE(IGNORE); END"
+    },
+    {
+      "id": "P3-022",
+      "family": "P3",
+      "name": "operator_test_required",
+      "table": "lease_heads",
+      "operation": "UPDATE",
+      "when": null,
+      "mode": "ABORT",
+      "sql": "CREATE TRIGGER operator_test_required BEFORE UPDATE ON lease_heads BEGIN SELECT RAISE(ABORT,'operator fault'); END"
+    },
+    {
+      "id": "P3-023",
+      "family": "P3",
+      "name": "operator_test_required",
+      "table": "operator_confirmations",
+      "operation": "INSERT",
+      "when": null,
+      "mode": "IGNORE",
+      "sql": "CREATE TRIGGER operator_test_required BEFORE INSERT ON operator_confirmations BEGIN SELECT RAISE(IGNORE); END"
+    },
+    {
+      "id": "P3-024",
+      "family": "P3",
+      "name": "operator_test_required",
+      "table": "operator_confirmations",
+      "operation": "INSERT",
+      "when": null,
+      "mode": "ABORT",
+      "sql": "CREATE TRIGGER operator_test_required BEFORE INSERT ON operator_confirmations BEGIN SELECT RAISE(ABORT,'operator fault'); END"
+    },
+    {
+      "id": "P3-025",
+      "family": "P3",
+      "name": "operator_test_required",
+      "table": "challenges",
+      "operation": "UPDATE",
+      "when": null,
+      "mode": "IGNORE",
+      "sql": "CREATE TRIGGER operator_test_required BEFORE UPDATE ON challenges BEGIN SELECT RAISE(IGNORE); END"
+    },
+    {
+      "id": "P3-026",
+      "family": "P3",
+      "name": "operator_test_required",
+      "table": "challenges",
+      "operation": "UPDATE",
+      "when": null,
+      "mode": "ABORT",
+      "sql": "CREATE TRIGGER operator_test_required BEFORE UPDATE ON challenges BEGIN SELECT RAISE(ABORT,'operator fault'); END"
+    },
+    {
+      "id": "P3-027",
+      "family": "P3",
+      "name": "operator_test_required",
+      "table": "request_limits",
+      "operation": "INSERT",
+      "when": null,
+      "mode": "IGNORE",
+      "sql": "CREATE TRIGGER operator_test_required BEFORE INSERT ON request_limits BEGIN SELECT RAISE(IGNORE); END"
+    },
+    {
+      "id": "P3-028",
+      "family": "P3",
+      "name": "operator_test_required",
+      "table": "request_limits",
+      "operation": "INSERT",
+      "when": null,
+      "mode": "ABORT",
+      "sql": "CREATE TRIGGER operator_test_required BEFORE INSERT ON request_limits BEGIN SELECT RAISE(ABORT,'operator fault'); END"
+    },
+    {
+      "id": "P3-029",
+      "family": "P3",
+      "name": "operator_test_required",
+      "table": "support_rate",
+      "operation": "INSERT",
+      "when": null,
+      "mode": "IGNORE",
+      "sql": "CREATE TRIGGER operator_test_required BEFORE INSERT ON support_rate BEGIN SELECT RAISE(IGNORE); END"
+    },
+    {
+      "id": "P3-030",
+      "family": "P3",
+      "name": "operator_test_required",
+      "table": "support_rate",
+      "operation": "INSERT",
+      "when": null,
+      "mode": "ABORT",
+      "sql": "CREATE TRIGGER operator_test_required BEFORE INSERT ON support_rate BEGIN SELECT RAISE(ABORT,'operator fault'); END"
+    },
+    {
+      "id": "P3-031",
+      "family": "P3",
+      "name": "operator_test_required",
+      "table": "support_delivery",
+      "operation": "INSERT",
+      "when": null,
+      "mode": "IGNORE",
+      "sql": "CREATE TRIGGER operator_test_required BEFORE INSERT ON support_delivery BEGIN SELECT RAISE(IGNORE); END"
+    },
+    {
+      "id": "P3-032",
+      "family": "P3",
+      "name": "operator_test_required",
+      "table": "support_delivery",
+      "operation": "INSERT",
+      "when": null,
+      "mode": "ABORT",
+      "sql": "CREATE TRIGGER operator_test_required BEFORE INSERT ON support_delivery BEGIN SELECT RAISE(ABORT,'operator fault'); END"
+    },
+    {
+      "id": "P3-033",
+      "family": "P3",
+      "name": "operator_test_required",
+      "table": "billing_reconcile",
+      "operation": "UPDATE",
+      "when": null,
+      "mode": "IGNORE",
+      "sql": "CREATE TRIGGER operator_test_required BEFORE UPDATE ON billing_reconcile BEGIN SELECT RAISE(IGNORE); END"
+    },
+    {
+      "id": "P3-034",
+      "family": "P3",
+      "name": "operator_test_required",
+      "table": "billing_reconcile",
+      "operation": "UPDATE",
+      "when": null,
+      "mode": "ABORT",
+      "sql": "CREATE TRIGGER operator_test_required BEFORE UPDATE ON billing_reconcile BEGIN SELECT RAISE(ABORT,'operator fault'); END"
+    },
+    {
+      "id": "P3-035",
+      "family": "P3",
+      "name": "operator_test_required",
+      "table": "billing_lifecycle_commit",
+      "operation": "INSERT",
+      "when": null,
+      "mode": "IGNORE",
+      "sql": "CREATE TRIGGER operator_test_required BEFORE INSERT ON billing_lifecycle_commit BEGIN SELECT RAISE(IGNORE); END"
+    },
+    {
+      "id": "P3-036",
+      "family": "P3",
+      "name": "operator_test_required",
+      "table": "billing_lifecycle_commit",
+      "operation": "INSERT",
+      "when": null,
+      "mode": "ABORT",
+      "sql": "CREATE TRIGGER operator_test_required BEFORE INSERT ON billing_lifecycle_commit BEGIN SELECT RAISE(ABORT,'operator fault'); END"
+    },
+    {
+      "id": "P3-037",
+      "family": "P3",
+      "name": "operator_test_required",
+      "table": "billing_renewal_stop",
+      "operation": "INSERT",
+      "when": null,
+      "mode": "IGNORE",
+      "sql": "CREATE TRIGGER operator_test_required BEFORE INSERT ON billing_renewal_stop BEGIN SELECT RAISE(IGNORE); END"
+    },
+    {
+      "id": "P3-038",
+      "family": "P3",
+      "name": "operator_test_required",
+      "table": "billing_renewal_stop",
+      "operation": "INSERT",
+      "when": null,
+      "mode": "ABORT",
+      "sql": "CREATE TRIGGER operator_test_required BEFORE INSERT ON billing_renewal_stop BEGIN SELECT RAISE(ABORT,'operator fault'); END"
+    },
+    {
+      "id": "P3-039",
+      "family": "P3",
+      "name": "operator_test_required",
+      "table": "billing_stop_cause",
+      "operation": "INSERT",
+      "when": null,
+      "mode": "IGNORE",
+      "sql": "CREATE TRIGGER operator_test_required BEFORE INSERT ON billing_stop_cause BEGIN SELECT RAISE(IGNORE); END"
+    },
+    {
+      "id": "P3-040",
+      "family": "P3",
+      "name": "operator_test_required",
+      "table": "billing_stop_cause",
+      "operation": "INSERT",
+      "when": null,
+      "mode": "ABORT",
+      "sql": "CREATE TRIGGER operator_test_required BEFORE INSERT ON billing_stop_cause BEGIN SELECT RAISE(ABORT,'operator fault'); END"
+    },
+    {
+      "id": "P3-041",
+      "family": "P3",
+      "name": "operator_test_required",
+      "table": "support_refund",
+      "operation": "INSERT",
+      "when": null,
+      "mode": "IGNORE",
+      "sql": "CREATE TRIGGER operator_test_required BEFORE INSERT ON support_refund BEGIN SELECT RAISE(IGNORE); END"
+    },
+    {
+      "id": "P3-042",
+      "family": "P3",
+      "name": "operator_test_required",
+      "table": "support_refund",
+      "operation": "INSERT",
+      "when": null,
+      "mode": "ABORT",
+      "sql": "CREATE TRIGGER operator_test_required BEFORE INSERT ON support_refund BEGIN SELECT RAISE(ABORT,'operator fault'); END"
+    },
+    {
+      "id": "P3-043",
+      "family": "P3",
+      "name": "operator_test_required",
+      "table": "support_stop_obligation",
+      "operation": "INSERT",
+      "when": null,
+      "mode": "IGNORE",
+      "sql": "CREATE TRIGGER operator_test_required BEFORE INSERT ON support_stop_obligation BEGIN SELECT RAISE(IGNORE); END"
+    },
+    {
+      "id": "P3-044",
+      "family": "P3",
+      "name": "operator_test_required",
+      "table": "support_stop_obligation",
+      "operation": "INSERT",
+      "when": null,
+      "mode": "ABORT",
+      "sql": "CREATE TRIGGER operator_test_required BEFORE INSERT ON support_stop_obligation BEGIN SELECT RAISE(ABORT,'operator fault'); END"
+    },
+    {
+      "id": "P3-045",
+      "family": "P3",
+      "name": "operator_test_lookup",
+      "table": "support_rate",
+      "operation": "INSERT",
+      "when": null,
+      "mode": "IGNORE",
+      "sql": "CREATE TRIGGER operator_test_lookup BEFORE INSERT ON support_rate BEGIN SELECT RAISE(IGNORE); END"
+    },
+    {
+      "id": "P3-046",
+      "family": "P3",
+      "name": "operator_test_lookup",
+      "table": "support_rate",
+      "operation": "INSERT",
+      "when": null,
+      "mode": "ABORT",
+      "sql": "CREATE TRIGGER operator_test_lookup BEFORE INSERT ON support_rate BEGIN SELECT RAISE(ABORT,'operator lookup fault'); END"
+    },
+    {
+      "id": "P3-047",
+      "family": "P3",
+      "name": "operator_test_lookup",
+      "table": "support_lookup",
+      "operation": "INSERT",
+      "when": null,
+      "mode": "IGNORE",
+      "sql": "CREATE TRIGGER operator_test_lookup BEFORE INSERT ON support_lookup BEGIN SELECT RAISE(IGNORE); END"
+    },
+    {
+      "id": "P3-048",
+      "family": "P3",
+      "name": "operator_test_lookup",
+      "table": "support_lookup",
+      "operation": "INSERT",
+      "when": null,
+      "mode": "ABORT",
+      "sql": "CREATE TRIGGER operator_test_lookup BEFORE INSERT ON support_lookup BEGIN SELECT RAISE(ABORT,'operator lookup fault'); END"
+    },
+    {
+      "id": "P3-049",
+      "family": "P3",
+      "name": "operator_test_lookup",
+      "table": "support_audit",
+      "operation": "INSERT",
+      "when": null,
+      "mode": "IGNORE",
+      "sql": "CREATE TRIGGER operator_test_lookup BEFORE INSERT ON support_audit BEGIN SELECT RAISE(IGNORE); END"
+    },
+    {
+      "id": "P3-050",
+      "family": "P3",
+      "name": "operator_test_lookup",
+      "table": "support_audit",
+      "operation": "INSERT",
+      "when": null,
+      "mode": "ABORT",
+      "sql": "CREATE TRIGGER operator_test_lookup BEFORE INSERT ON support_audit BEGIN SELECT RAISE(ABORT,'operator lookup fault'); END"
+    },
+    {
+      "id": "P3-051",
+      "family": "P3",
+      "name": "operator_test_lookup",
+      "table": "support_commit",
+      "operation": "INSERT",
+      "when": null,
+      "mode": "IGNORE",
+      "sql": "CREATE TRIGGER operator_test_lookup BEFORE INSERT ON support_commit BEGIN SELECT RAISE(IGNORE); END"
+    },
+    {
+      "id": "P3-052",
+      "family": "P3",
+      "name": "operator_test_lookup",
+      "table": "support_commit",
+      "operation": "INSERT",
+      "when": null,
+      "mode": "ABORT",
+      "sql": "CREATE TRIGGER operator_test_lookup BEFORE INSERT ON support_commit BEGIN SELECT RAISE(ABORT,'operator lookup fault'); END"
+    },
+    {
+      "id": "P3-053",
+      "family": "P3",
+      "name": "operator_test_prepare",
+      "table": "support_commit",
+      "operation": "INSERT",
+      "when": null,
+      "mode": "IGNORE",
+      "sql": "CREATE TRIGGER operator_test_prepare BEFORE INSERT ON support_commit BEGIN SELECT RAISE(IGNORE); END"
+    },
+    {
+      "id": "P3-054",
+      "family": "P3",
+      "name": "operator_test_prepare",
+      "table": "support_commit",
+      "operation": "INSERT",
+      "when": null,
+      "mode": "ABORT",
+      "sql": "CREATE TRIGGER operator_test_prepare BEFORE INSERT ON support_commit BEGIN SELECT RAISE(ABORT,'operator prepare fault'); END"
+    },
+    {
+      "id": "P3-055",
+      "family": "P3",
+      "name": "operator_test_dispatch",
+      "table": "support_audit",
+      "operation": "INSERT",
+      "when": "NEW.event='providerDispatch'",
+      "mode": "IGNORE",
+      "sql": "CREATE TRIGGER operator_test_dispatch BEFORE INSERT ON support_audit WHEN NEW.event='providerDispatch' BEGIN SELECT RAISE(IGNORE); END"
+    },
+    {
+      "id": "P3-056",
+      "family": "P3",
+      "name": "operator_test_dispatch",
+      "table": "support_audit",
+      "operation": "INSERT",
+      "when": "NEW.event='providerDispatch'",
+      "mode": "ABORT",
+      "sql": "CREATE TRIGGER operator_test_dispatch BEFORE INSERT ON support_audit WHEN NEW.event='providerDispatch' BEGIN SELECT RAISE(ABORT,'operator dispatch fault'); END"
+    },
+    {
+      "id": "P3-057",
+      "family": "P3",
+      "name": "operator_test_dispatch",
+      "table": "support_audit",
+      "operation": "INSERT",
+      "when": "NEW.event='providerResult'",
+      "mode": "IGNORE",
+      "sql": "CREATE TRIGGER operator_test_dispatch BEFORE INSERT ON support_audit WHEN NEW.event='providerResult' BEGIN SELECT RAISE(IGNORE); END"
+    },
+    {
+      "id": "P3-058",
+      "family": "P3",
+      "name": "operator_test_dispatch",
+      "table": "support_audit",
+      "operation": "INSERT",
+      "when": "NEW.event='providerResult'",
+      "mode": "ABORT",
+      "sql": "CREATE TRIGGER operator_test_dispatch BEFORE INSERT ON support_audit WHEN NEW.event='providerResult' BEGIN SELECT RAISE(ABORT,'operator dispatch fault'); END"
+    },
+    {
+      "id": "P3-059",
+      "family": "P3",
+      "name": "operator_test_dispatch",
+      "table": "support_commit",
+      "operation": "INSERT",
+      "when": "NEW.kind='dispatch'",
+      "mode": "IGNORE",
+      "sql": "CREATE TRIGGER operator_test_dispatch BEFORE INSERT ON support_commit WHEN NEW.kind='dispatch' BEGIN SELECT RAISE(IGNORE); END"
+    },
+    {
+      "id": "P3-060",
+      "family": "P3",
+      "name": "operator_test_dispatch",
+      "table": "support_commit",
+      "operation": "INSERT",
+      "when": "NEW.kind='dispatch'",
+      "mode": "ABORT",
+      "sql": "CREATE TRIGGER operator_test_dispatch BEFORE INSERT ON support_commit WHEN NEW.kind='dispatch' BEGIN SELECT RAISE(ABORT,'operator dispatch fault'); END"
+    },
+    {
+      "id": "P3-061",
+      "family": "P3",
+      "name": "operator_test_dispatch",
+      "table": "support_commit",
+      "operation": "INSERT",
+      "when": "NEW.kind='result'",
+      "mode": "IGNORE",
+      "sql": "CREATE TRIGGER operator_test_dispatch BEFORE INSERT ON support_commit WHEN NEW.kind='result' BEGIN SELECT RAISE(IGNORE); END"
+    },
+    {
+      "id": "P3-062",
+      "family": "P3",
+      "name": "operator_test_dispatch",
+      "table": "support_commit",
+      "operation": "INSERT",
+      "when": "NEW.kind='result'",
+      "mode": "ABORT",
+      "sql": "CREATE TRIGGER operator_test_dispatch BEFORE INSERT ON support_commit WHEN NEW.kind='result' BEGIN SELECT RAISE(ABORT,'operator dispatch fault'); END"
+    },
+    {
+      "id": "P3-063",
+      "family": "P3",
+      "name": "operator_test_dispatch",
+      "table": "support_delivery",
+      "operation": "UPDATE",
+      "when": "NEW.state='dispatching'",
+      "mode": "IGNORE",
+      "sql": "CREATE TRIGGER operator_test_dispatch BEFORE UPDATE ON support_delivery WHEN NEW.state='dispatching' BEGIN SELECT RAISE(IGNORE); END"
+    },
+    {
+      "id": "P3-064",
+      "family": "P3",
+      "name": "operator_test_dispatch",
+      "table": "support_delivery",
+      "operation": "UPDATE",
+      "when": "NEW.state='dispatching'",
+      "mode": "ABORT",
+      "sql": "CREATE TRIGGER operator_test_dispatch BEFORE UPDATE ON support_delivery WHEN NEW.state='dispatching' BEGIN SELECT RAISE(ABORT,'operator dispatch fault'); END"
+    },
+    {
+      "id": "P3-065",
+      "family": "P3",
+      "name": "operator_test_dispatch",
+      "table": "support_delivery",
+      "operation": "UPDATE",
+      "when": "NEW.state='accepted'",
+      "mode": "IGNORE",
+      "sql": "CREATE TRIGGER operator_test_dispatch BEFORE UPDATE ON support_delivery WHEN NEW.state='accepted' BEGIN SELECT RAISE(IGNORE); END"
+    },
+    {
+      "id": "P3-066",
+      "family": "P3",
+      "name": "operator_test_dispatch",
+      "table": "support_delivery",
+      "operation": "UPDATE",
+      "when": "NEW.state='accepted'",
+      "mode": "ABORT",
+      "sql": "CREATE TRIGGER operator_test_dispatch BEFORE UPDATE ON support_delivery WHEN NEW.state='accepted' BEGIN SELECT RAISE(ABORT,'operator dispatch fault'); END"
+    },
+    {
+      "id": "P3-067",
+      "family": "P3",
+      "name": "operator_test_dispatch",
+      "table": "support_refund",
+      "operation": "UPDATE",
+      "when": "NEW.state='dispatching'",
+      "mode": "IGNORE",
+      "sql": "CREATE TRIGGER operator_test_dispatch BEFORE UPDATE ON support_refund WHEN NEW.state='dispatching' BEGIN SELECT RAISE(IGNORE); END"
+    },
+    {
+      "id": "P3-068",
+      "family": "P3",
+      "name": "operator_test_dispatch",
+      "table": "support_refund",
+      "operation": "UPDATE",
+      "when": "NEW.state='dispatching'",
+      "mode": "ABORT",
+      "sql": "CREATE TRIGGER operator_test_dispatch BEFORE UPDATE ON support_refund WHEN NEW.state='dispatching' BEGIN SELECT RAISE(ABORT,'operator dispatch fault'); END"
+    },
+    {
+      "id": "P3-069",
+      "family": "P3",
+      "name": "operator_test_dispatch",
+      "table": "support_refund",
+      "operation": "UPDATE",
+      "when": "NEW.state='accepted'",
+      "mode": "IGNORE",
+      "sql": "CREATE TRIGGER operator_test_dispatch BEFORE UPDATE ON support_refund WHEN NEW.state='accepted' BEGIN SELECT RAISE(IGNORE); END"
+    },
+    {
+      "id": "P3-070",
+      "family": "P3",
+      "name": "operator_test_dispatch",
+      "table": "support_refund",
+      "operation": "UPDATE",
+      "when": "NEW.state='accepted'",
+      "mode": "ABORT",
+      "sql": "CREATE TRIGGER operator_test_dispatch BEFORE UPDATE ON support_refund WHEN NEW.state='accepted' BEGIN SELECT RAISE(ABORT,'operator dispatch fault'); END"
+    },
+    {
+      "id": "P3-071",
+      "family": "P3",
+      "name": "operator_test_activation",
+      "table": "challenges",
+      "operation": "UPDATE",
+      "when": "NEW.superseded_at IS NULL",
+      "mode": "IGNORE",
+      "sql": "CREATE TRIGGER operator_test_activation BEFORE UPDATE ON challenges WHEN NEW.superseded_at IS NULL BEGIN SELECT RAISE(IGNORE); END"
+    },
+    {
+      "id": "P3-072",
+      "family": "P3",
+      "name": "operator_test_activation",
+      "table": "challenges",
+      "operation": "UPDATE",
+      "when": "NEW.superseded_at IS NULL",
+      "mode": "ABORT",
+      "sql": "CREATE TRIGGER operator_test_activation BEFORE UPDATE ON challenges WHEN NEW.superseded_at IS NULL BEGIN SELECT RAISE(ABORT,'operator challenge result fault'); END"
+    },
+    {
+      "id": "P3-073",
+      "family": "P3",
+      "name": "operator_test_source_dispatch",
+      "table": "account_guard",
+      "operation": "UPDATE",
+      "when": null,
+      "mode": "IGNORE",
+      "sql": "CREATE TRIGGER operator_test_source_dispatch BEFORE UPDATE ON account_guard BEGIN SELECT RAISE(IGNORE); END"
+    },
+    {
+      "id": "P3-074",
+      "family": "P3",
+      "name": "operator_test_source_dispatch",
+      "table": "account_guard",
+      "operation": "UPDATE",
+      "when": null,
+      "mode": "ABORT",
+      "sql": "CREATE TRIGGER operator_test_source_dispatch BEFORE UPDATE ON account_guard BEGIN SELECT RAISE(ABORT,'source dispatch fault'); END"
+    },
+    {
+      "id": "P3-075",
+      "family": "P3",
+      "name": "operator_test_source_dispatch",
+      "table": "account_nonce_history",
+      "operation": "INSERT",
+      "when": null,
+      "mode": "IGNORE",
+      "sql": "CREATE TRIGGER operator_test_source_dispatch BEFORE INSERT ON account_nonce_history BEGIN SELECT RAISE(IGNORE); END"
+    },
+    {
+      "id": "P3-076",
+      "family": "P3",
+      "name": "operator_test_source_dispatch",
+      "table": "account_nonce_history",
+      "operation": "INSERT",
+      "when": null,
+      "mode": "ABORT",
+      "sql": "CREATE TRIGGER operator_test_source_dispatch BEFORE INSERT ON account_nonce_history BEGIN SELECT RAISE(ABORT,'source dispatch fault'); END"
+    },
+    {
+      "id": "P3-077",
+      "family": "P3",
+      "name": "operator_test_source_dispatch",
+      "table": "account_audit",
+      "operation": "INSERT",
+      "when": null,
+      "mode": "IGNORE",
+      "sql": "CREATE TRIGGER operator_test_source_dispatch BEFORE INSERT ON account_audit BEGIN SELECT RAISE(IGNORE); END"
+    },
+    {
+      "id": "P3-078",
+      "family": "P3",
+      "name": "operator_test_source_dispatch",
+      "table": "account_audit",
+      "operation": "INSERT",
+      "when": null,
+      "mode": "ABORT",
+      "sql": "CREATE TRIGGER operator_test_source_dispatch BEFORE INSERT ON account_audit BEGIN SELECT RAISE(ABORT,'source dispatch fault'); END"
+    },
+    {
+      "id": "P3-079",
+      "family": "P3",
+      "name": "operator_test_source_dispatch",
+      "table": "billing_lifecycle_commit",
+      "operation": "INSERT",
+      "when": null,
+      "mode": "IGNORE",
+      "sql": "CREATE TRIGGER operator_test_source_dispatch BEFORE INSERT ON billing_lifecycle_commit BEGIN SELECT RAISE(IGNORE); END"
+    },
+    {
+      "id": "P3-080",
+      "family": "P3",
+      "name": "operator_test_source_dispatch",
+      "table": "billing_lifecycle_commit",
+      "operation": "INSERT",
+      "when": null,
+      "mode": "ABORT",
+      "sql": "CREATE TRIGGER operator_test_source_dispatch BEFORE INSERT ON billing_lifecycle_commit BEGIN SELECT RAISE(ABORT,'source dispatch fault'); END"
+    },
+    {
+      "id": "P3-081",
+      "family": "P3",
+      "name": "operator_test_source_dispatch",
+      "table": "accounts",
+      "operation": "UPDATE",
+      "when": null,
+      "mode": "IGNORE",
+      "sql": "CREATE TRIGGER operator_test_source_dispatch BEFORE UPDATE ON accounts BEGIN SELECT RAISE(IGNORE); END"
+    },
+    {
+      "id": "P3-082",
+      "family": "P3",
+      "name": "operator_test_source_dispatch",
+      "table": "accounts",
+      "operation": "UPDATE",
+      "when": null,
+      "mode": "ABORT",
+      "sql": "CREATE TRIGGER operator_test_source_dispatch BEFORE UPDATE ON accounts BEGIN SELECT RAISE(ABORT,'source dispatch fault'); END"
+    },
+    {
+      "id": "P3-083",
+      "family": "P3",
+      "name": "operator_test_obligation_result",
+      "table": "support_stop_obligation",
+      "operation": "UPDATE",
+      "when": "NEW.state='closed'",
+      "mode": "IGNORE",
+      "sql": "CREATE TRIGGER operator_test_obligation_result BEFORE UPDATE ON support_stop_obligation WHEN NEW.state='closed' BEGIN SELECT RAISE(IGNORE); END"
+    },
+    {
+      "id": "P3-084",
+      "family": "P3",
+      "name": "operator_test_obligation_result",
+      "table": "support_stop_obligation",
+      "operation": "UPDATE",
+      "when": "NEW.state='closed'",
+      "mode": "ABORT",
+      "sql": "CREATE TRIGGER operator_test_obligation_result BEFORE UPDATE ON support_stop_obligation WHEN NEW.state='closed' BEGIN SELECT RAISE(ABORT,'obligation result fault'); END"
+    },
+    {
+      "id": "P3-085",
+      "family": "P3",
+      "name": "operator_test_capacity_result",
+      "table": "support_commit",
+      "operation": "INSERT",
+      "when": "NEW.kind='result'",
+      "mode": "IGNORE",
+      "sql": "CREATE TRIGGER operator_test_capacity_result BEFORE INSERT ON support_commit WHEN NEW.kind='result' BEGIN SELECT RAISE(IGNORE); END"
+    },
+    {
+      "id": "P3-086",
+      "family": "P3",
+      "name": "operator_test_capacity_result",
+      "table": "support_commit",
+      "operation": "INSERT",
+      "when": "NEW.kind='result'",
+      "mode": "ABORT",
+      "sql": "CREATE TRIGGER operator_test_capacity_result BEFORE INSERT ON support_commit WHEN NEW.kind='result' BEGIN SELECT RAISE(ABORT,'capacity result lost'); END"
+    },
+    {
+      "id": "B4-087",
+      "family": "B4",
+      "name": "notices_test_fault_update",
+      "table": "account_guard",
+      "operation": "UPDATE",
+      "when": null,
+      "mode": "IGNORE",
+      "sql": "CREATE TRIGGER notices_test_fault_update BEFORE UPDATE ON account_guard BEGIN SELECT RAISE(IGNORE); END"
+    },
+    {
+      "id": "B4-088",
+      "family": "B4",
+      "name": "notices_test_fault_update",
+      "table": "account_guard",
+      "operation": "UPDATE",
+      "when": null,
+      "mode": "ABORT",
+      "sql": "CREATE TRIGGER notices_test_fault_update BEFORE UPDATE ON account_guard BEGIN SELECT RAISE(ABORT,'synthetic required-write failure'); END"
+    },
+    {
+      "id": "B4-089",
+      "family": "B4",
+      "name": "notices_test_fault_update",
+      "table": "accounts",
+      "operation": "UPDATE",
+      "when": null,
+      "mode": "IGNORE",
+      "sql": "CREATE TRIGGER notices_test_fault_update BEFORE UPDATE ON accounts BEGIN SELECT RAISE(IGNORE); END"
+    },
+    {
+      "id": "B4-090",
+      "family": "B4",
+      "name": "notices_test_fault_update",
+      "table": "accounts",
+      "operation": "UPDATE",
+      "when": null,
+      "mode": "ABORT",
+      "sql": "CREATE TRIGGER notices_test_fault_update BEFORE UPDATE ON accounts BEGIN SELECT RAISE(ABORT,'synthetic required-write failure'); END"
+    },
+    {
+      "id": "B4-091",
+      "family": "B4",
+      "name": "notices_test_fault_insert",
+      "table": "account_nonce_history",
+      "operation": "INSERT",
+      "when": null,
+      "mode": "IGNORE",
+      "sql": "CREATE TRIGGER notices_test_fault_insert BEFORE INSERT ON account_nonce_history BEGIN SELECT RAISE(IGNORE); END"
+    },
+    {
+      "id": "B4-092",
+      "family": "B4",
+      "name": "notices_test_fault_insert",
+      "table": "account_nonce_history",
+      "operation": "INSERT",
+      "when": null,
+      "mode": "ABORT",
+      "sql": "CREATE TRIGGER notices_test_fault_insert BEFORE INSERT ON account_nonce_history BEGIN SELECT RAISE(ABORT,'synthetic required-write failure'); END"
+    },
+    {
+      "id": "B4-093",
+      "family": "B4",
+      "name": "notices_test_fault_insert",
+      "table": "account_audit",
+      "operation": "INSERT",
+      "when": null,
+      "mode": "IGNORE",
+      "sql": "CREATE TRIGGER notices_test_fault_insert BEFORE INSERT ON account_audit BEGIN SELECT RAISE(IGNORE); END"
+    },
+    {
+      "id": "B4-094",
+      "family": "B4",
+      "name": "notices_test_fault_insert",
+      "table": "account_audit",
+      "operation": "INSERT",
+      "when": null,
+      "mode": "ABORT",
+      "sql": "CREATE TRIGGER notices_test_fault_insert BEFORE INSERT ON account_audit BEGIN SELECT RAISE(ABORT,'synthetic required-write failure'); END"
+    },
+    {
+      "id": "B4-095",
+      "family": "B4",
+      "name": "notices_test_fault_insert",
+      "table": "billing_reconcile",
+      "operation": "INSERT",
+      "when": null,
+      "mode": "IGNORE",
+      "sql": "CREATE TRIGGER notices_test_fault_insert BEFORE INSERT ON billing_reconcile BEGIN SELECT RAISE(IGNORE); END"
+    },
+    {
+      "id": "B4-096",
+      "family": "B4",
+      "name": "notices_test_fault_insert",
+      "table": "billing_reconcile",
+      "operation": "INSERT",
+      "when": null,
+      "mode": "ABORT",
+      "sql": "CREATE TRIGGER notices_test_fault_insert BEFORE INSERT ON billing_reconcile BEGIN SELECT RAISE(ABORT,'synthetic required-write failure'); END"
+    },
+    {
+      "id": "B4-097",
+      "family": "B4",
+      "name": "notices_test_fault_insert",
+      "table": "billing_snapshot",
+      "operation": "INSERT",
+      "when": null,
+      "mode": "IGNORE",
+      "sql": "CREATE TRIGGER notices_test_fault_insert BEFORE INSERT ON billing_snapshot BEGIN SELECT RAISE(IGNORE); END"
+    },
+    {
+      "id": "B4-098",
+      "family": "B4",
+      "name": "notices_test_fault_insert",
+      "table": "billing_snapshot",
+      "operation": "INSERT",
+      "when": null,
+      "mode": "ABORT",
+      "sql": "CREATE TRIGGER notices_test_fault_insert BEFORE INSERT ON billing_snapshot BEGIN SELECT RAISE(ABORT,'synthetic required-write failure'); END"
+    },
+    {
+      "id": "B4-099",
+      "family": "B4",
+      "name": "notices_test_fault_insert",
+      "table": "billing_entity_version",
+      "operation": "INSERT",
+      "when": null,
+      "mode": "IGNORE",
+      "sql": "CREATE TRIGGER notices_test_fault_insert BEFORE INSERT ON billing_entity_version BEGIN SELECT RAISE(IGNORE); END"
+    },
+    {
+      "id": "B4-100",
+      "family": "B4",
+      "name": "notices_test_fault_insert",
+      "table": "billing_entity_version",
+      "operation": "INSERT",
+      "when": null,
+      "mode": "ABORT",
+      "sql": "CREATE TRIGGER notices_test_fault_insert BEFORE INSERT ON billing_entity_version BEGIN SELECT RAISE(ABORT,'synthetic required-write failure'); END"
+    },
+    {
+      "id": "B4-101",
+      "family": "B4",
+      "name": "notices_test_fault_insert",
+      "table": "billing_subscription",
+      "operation": "INSERT",
+      "when": null,
+      "mode": "IGNORE",
+      "sql": "CREATE TRIGGER notices_test_fault_insert BEFORE INSERT ON billing_subscription BEGIN SELECT RAISE(IGNORE); END"
+    },
+    {
+      "id": "B4-102",
+      "family": "B4",
+      "name": "notices_test_fault_insert",
+      "table": "billing_subscription",
+      "operation": "INSERT",
+      "when": null,
+      "mode": "ABORT",
+      "sql": "CREATE TRIGGER notices_test_fault_insert BEFORE INSERT ON billing_subscription BEGIN SELECT RAISE(ABORT,'synthetic required-write failure'); END"
+    },
+    {
+      "id": "B4-103",
+      "family": "B4",
+      "name": "notices_test_fault_insert",
+      "table": "billing_lifecycle_commit",
+      "operation": "INSERT",
+      "when": null,
+      "mode": "IGNORE",
+      "sql": "CREATE TRIGGER notices_test_fault_insert BEFORE INSERT ON billing_lifecycle_commit BEGIN SELECT RAISE(IGNORE); END"
+    },
+    {
+      "id": "B4-104",
+      "family": "B4",
+      "name": "notices_test_fault_insert",
+      "table": "billing_lifecycle_commit",
+      "operation": "INSERT",
+      "when": null,
+      "mode": "ABORT",
+      "sql": "CREATE TRIGGER notices_test_fault_insert BEFORE INSERT ON billing_lifecycle_commit BEGIN SELECT RAISE(ABORT,'synthetic required-write failure'); END"
+    },
+    {
+      "id": "B4-105",
+      "family": "B4",
+      "name": "notices_test_fault_insert",
+      "table": "billing_reminder",
+      "operation": "INSERT",
+      "when": null,
+      "mode": "IGNORE",
+      "sql": "CREATE TRIGGER notices_test_fault_insert BEFORE INSERT ON billing_reminder BEGIN SELECT RAISE(IGNORE); END"
+    },
+    {
+      "id": "B4-106",
+      "family": "B4",
+      "name": "notices_test_fault_insert",
+      "table": "billing_reminder",
+      "operation": "INSERT",
+      "when": null,
+      "mode": "ABORT",
+      "sql": "CREATE TRIGGER notices_test_fault_insert BEFORE INSERT ON billing_reminder BEGIN SELECT RAISE(ABORT,'synthetic required-write failure'); END"
+    },
+    {
+      "id": "B4-107",
+      "family": "B4",
+      "name": "notices_test_fault_update",
+      "table": "billing_reminder",
+      "operation": "UPDATE",
+      "when": null,
+      "mode": "IGNORE",
+      "sql": "CREATE TRIGGER notices_test_fault_update BEFORE UPDATE ON billing_reminder BEGIN SELECT RAISE(IGNORE); END"
+    },
+    {
+      "id": "B4-108",
+      "family": "B4",
+      "name": "notices_test_fault_update",
+      "table": "billing_reminder",
+      "operation": "UPDATE",
+      "when": null,
+      "mode": "ABORT",
+      "sql": "CREATE TRIGGER notices_test_fault_update BEFORE UPDATE ON billing_reminder BEGIN SELECT RAISE(ABORT,'synthetic required-write failure'); END"
+    },
+    {
+      "id": "B4-109",
+      "family": "B4",
+      "name": "notices_test_fault_insert",
+      "table": "billing_notice_dispatch",
+      "operation": "INSERT",
+      "when": null,
+      "mode": "IGNORE",
+      "sql": "CREATE TRIGGER notices_test_fault_insert BEFORE INSERT ON billing_notice_dispatch BEGIN SELECT RAISE(IGNORE); END"
+    },
+    {
+      "id": "B4-110",
+      "family": "B4",
+      "name": "notices_test_fault_insert",
+      "table": "billing_notice_dispatch",
+      "operation": "INSERT",
+      "when": null,
+      "mode": "ABORT",
+      "sql": "CREATE TRIGGER notices_test_fault_insert BEFORE INSERT ON billing_notice_dispatch BEGIN SELECT RAISE(ABORT,'synthetic required-write failure'); END"
+    },
+    {
+      "id": "B4-111",
+      "family": "B4",
+      "name": "notices_test_fault_update",
+      "table": "billing_notice_dispatch",
+      "operation": "UPDATE",
+      "when": null,
+      "mode": "IGNORE",
+      "sql": "CREATE TRIGGER notices_test_fault_update BEFORE UPDATE ON billing_notice_dispatch BEGIN SELECT RAISE(IGNORE); END"
+    },
+    {
+      "id": "B4-112",
+      "family": "B4",
+      "name": "notices_test_fault_update",
+      "table": "billing_notice_dispatch",
+      "operation": "UPDATE",
+      "when": null,
+      "mode": "ABORT",
+      "sql": "CREATE TRIGGER notices_test_fault_update BEFORE UPDATE ON billing_notice_dispatch BEGIN SELECT RAISE(ABORT,'synthetic required-write failure'); END"
+    },
+    {
+      "id": "B4-113",
+      "family": "B4",
+      "name": "notices_test_fault_insert",
+      "table": "billing_notice_commit",
+      "operation": "INSERT",
+      "when": null,
+      "mode": "IGNORE",
+      "sql": "CREATE TRIGGER notices_test_fault_insert BEFORE INSERT ON billing_notice_commit BEGIN SELECT RAISE(IGNORE); END"
+    },
+    {
+      "id": "B4-114",
+      "family": "B4",
+      "name": "notices_test_fault_insert",
+      "table": "billing_notice_commit",
+      "operation": "INSERT",
+      "when": null,
+      "mode": "ABORT",
+      "sql": "CREATE TRIGGER notices_test_fault_insert BEFORE INSERT ON billing_notice_commit BEGIN SELECT RAISE(ABORT,'synthetic required-write failure'); END"
+    },
+    {
+      "id": "B4-115",
+      "family": "B4",
+      "name": "notices_test_fault_update",
+      "table": "billing_notice_commit",
+      "operation": "UPDATE",
+      "when": null,
+      "mode": "IGNORE",
+      "sql": "CREATE TRIGGER notices_test_fault_update BEFORE UPDATE ON billing_notice_commit BEGIN SELECT RAISE(IGNORE); END"
+    },
+    {
+      "id": "B4-116",
+      "family": "B4",
+      "name": "notices_test_fault_update",
+      "table": "billing_notice_commit",
+      "operation": "UPDATE",
+      "when": null,
+      "mode": "ABORT",
+      "sql": "CREATE TRIGGER notices_test_fault_update BEFORE UPDATE ON billing_notice_commit BEGIN SELECT RAISE(ABORT,'synthetic required-write failure'); END"
+    },
+    {
+      "id": "B4-117",
+      "family": "B4",
+      "name": "notices_test_fault_insert",
+      "table": "billing_notice_head",
+      "operation": "INSERT",
+      "when": null,
+      "mode": "IGNORE",
+      "sql": "CREATE TRIGGER notices_test_fault_insert BEFORE INSERT ON billing_notice_head BEGIN SELECT RAISE(IGNORE); END"
+    },
+    {
+      "id": "B4-118",
+      "family": "B4",
+      "name": "notices_test_fault_insert",
+      "table": "billing_notice_head",
+      "operation": "INSERT",
+      "when": null,
+      "mode": "ABORT",
+      "sql": "CREATE TRIGGER notices_test_fault_insert BEFORE INSERT ON billing_notice_head BEGIN SELECT RAISE(ABORT,'synthetic required-write failure'); END"
+    },
+    {
+      "id": "B4-119",
+      "family": "B4",
+      "name": "notices_test_fault_update",
+      "table": "billing_notice_head",
+      "operation": "UPDATE",
+      "when": null,
+      "mode": "IGNORE",
+      "sql": "CREATE TRIGGER notices_test_fault_update BEFORE UPDATE ON billing_notice_head BEGIN SELECT RAISE(IGNORE); END"
+    },
+    {
+      "id": "B4-120",
+      "family": "B4",
+      "name": "notices_test_fault_update",
+      "table": "billing_notice_head",
+      "operation": "UPDATE",
+      "when": null,
+      "mode": "ABORT",
+      "sql": "CREATE TRIGGER notices_test_fault_update BEFORE UPDATE ON billing_notice_head BEGIN SELECT RAISE(ABORT,'synthetic required-write failure'); END"
+    },
+    {
+      "id": "B4-121",
+      "family": "B4",
+      "name": "notices_test_fault_insert",
+      "table": "billing_notice_receipt",
+      "operation": "INSERT",
+      "when": null,
+      "mode": "IGNORE",
+      "sql": "CREATE TRIGGER notices_test_fault_insert BEFORE INSERT ON billing_notice_receipt BEGIN SELECT RAISE(IGNORE); END"
+    },
+    {
+      "id": "B4-122",
+      "family": "B4",
+      "name": "notices_test_fault_insert",
+      "table": "billing_notice_receipt",
+      "operation": "INSERT",
+      "when": null,
+      "mode": "ABORT",
+      "sql": "CREATE TRIGGER notices_test_fault_insert BEFORE INSERT ON billing_notice_receipt BEGIN SELECT RAISE(ABORT,'synthetic required-write failure'); END"
+    },
+    {
+      "id": "B4-123",
+      "family": "B4",
+      "name": "notices_test_fault_update",
+      "table": "billing_notice_receipt",
+      "operation": "UPDATE",
+      "when": null,
+      "mode": "IGNORE",
+      "sql": "CREATE TRIGGER notices_test_fault_update BEFORE UPDATE ON billing_notice_receipt BEGIN SELECT RAISE(IGNORE); END"
+    },
+    {
+      "id": "B4-124",
+      "family": "B4",
+      "name": "notices_test_fault_update",
+      "table": "billing_notice_receipt",
+      "operation": "UPDATE",
+      "when": null,
+      "mode": "ABORT",
+      "sql": "CREATE TRIGGER notices_test_fault_update BEFORE UPDATE ON billing_notice_receipt BEGIN SELECT RAISE(ABORT,'synthetic required-write failure'); END"
+    },
+    {
+      "id": "B4-125",
+      "family": "B4",
+      "name": "notices_test_fault_insert",
+      "table": "billing_notice_contact",
+      "operation": "INSERT",
+      "when": null,
+      "mode": "IGNORE",
+      "sql": "CREATE TRIGGER notices_test_fault_insert BEFORE INSERT ON billing_notice_contact BEGIN SELECT RAISE(IGNORE); END"
+    },
+    {
+      "id": "B4-126",
+      "family": "B4",
+      "name": "notices_test_fault_insert",
+      "table": "billing_notice_contact",
+      "operation": "INSERT",
+      "when": null,
+      "mode": "ABORT",
+      "sql": "CREATE TRIGGER notices_test_fault_insert BEFORE INSERT ON billing_notice_contact BEGIN SELECT RAISE(ABORT,'synthetic required-write failure'); END"
+    },
+    {
+      "id": "B4-127",
+      "family": "B4",
+      "name": "notices_test_fault_update",
+      "table": "billing_notice_contact",
+      "operation": "UPDATE",
+      "when": null,
+      "mode": "IGNORE",
+      "sql": "CREATE TRIGGER notices_test_fault_update BEFORE UPDATE ON billing_notice_contact BEGIN SELECT RAISE(IGNORE); END"
+    },
+    {
+      "id": "B4-128",
+      "family": "B4",
+      "name": "notices_test_fault_update",
+      "table": "billing_notice_contact",
+      "operation": "UPDATE",
+      "when": null,
+      "mode": "ABORT",
+      "sql": "CREATE TRIGGER notices_test_fault_update BEFORE UPDATE ON billing_notice_contact BEGIN SELECT RAISE(ABORT,'synthetic required-write failure'); END"
+    },
+    {
+      "id": "B4-129",
+      "family": "B4",
+      "name": "notices_test_fault",
+      "table": "billing_notice_receipt",
+      "operation": "INSERT",
+      "when": null,
+      "mode": "IGNORE",
+      "sql": "CREATE TRIGGER notices_test_fault BEFORE INSERT ON billing_notice_receipt BEGIN SELECT RAISE(IGNORE); END"
+    }
+  ],
+  "drops": [
+    {
+      "id": "DROP-01",
+      "name": "operator_test_required",
+      "sql": "DROP TRIGGER \"operator_test_required\""
+    },
+    {
+      "id": "DROP-02",
+      "name": "operator_test_lookup",
+      "sql": "DROP TRIGGER \"operator_test_lookup\""
+    },
+    {
+      "id": "DROP-03",
+      "name": "operator_test_prepare",
+      "sql": "DROP TRIGGER \"operator_test_prepare\""
+    },
+    {
+      "id": "DROP-04",
+      "name": "operator_test_dispatch",
+      "sql": "DROP TRIGGER \"operator_test_dispatch\""
+    },
+    {
+      "id": "DROP-05",
+      "name": "operator_test_activation",
+      "sql": "DROP TRIGGER \"operator_test_activation\""
+    },
+    {
+      "id": "DROP-06",
+      "name": "operator_test_source_dispatch",
+      "sql": "DROP TRIGGER \"operator_test_source_dispatch\""
+    },
+    {
+      "id": "DROP-07",
+      "name": "operator_test_obligation_result",
+      "sql": "DROP TRIGGER \"operator_test_obligation_result\""
+    },
+    {
+      "id": "DROP-08",
+      "name": "operator_test_capacity_result",
+      "sql": "DROP TRIGGER \"operator_test_capacity_result\""
+    },
+    {
+      "id": "DROP-09",
+      "name": "notices_test_fault_update",
+      "sql": "DROP TRIGGER \"notices_test_fault_update\""
+    },
+    {
+      "id": "DROP-10",
+      "name": "notices_test_fault_insert",
+      "sql": "DROP TRIGGER \"notices_test_fault_insert\""
+    },
+    {
+      "id": "DROP-11",
+      "name": "notices_test_fault",
+      "sql": "DROP TRIGGER \"notices_test_fault\""
+    },
+    {
+      "id": "DROP-12",
+      "name": "operator_test_capacity_result",
+      "sql": "DROP TRIGGER operator_test_capacity_result"
+    },
+    {
+      "id": "DROP-13",
+      "name": "notices_test_fault",
+      "sql": "DROP TRIGGER notices_test_fault"
+    }
+  ]
+}

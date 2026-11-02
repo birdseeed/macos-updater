@@ -1,0 +1,90 @@
+name: Verify local licensing fixture
+on:
+  workflow_dispatch:
+    inputs:
+      native_only:
+        description: Run only the native macOS bridge
+        type: boolean
+        default: false
+  pull_request:
+    paths:
+      - 'service/licensing/**'
+      - 'scripts/verify-service.sh'
+      - 'scripts/verify-billing.sh'
+      - 'Fixtures/Billing/**'
+      - '.github/workflows/licensing-verify.yml'
+      - 'Tests/CIWorkflowChecks/**'
+      - '.github/workflows/catalogue-ci-diagnostics.yml'
+      - '.github/workflows/disposable-ci-diagnostics.yml'
+      - '.github/workflows/verify.yml'
+      - '.github/workflows/macos-runner-smoke.yml'
+      - 'docs/licensing-implementation-plan.md'
+      - 'AGENTS.md'
+  push:
+    branches: [main]
+    paths:
+      - 'service/licensing/**'
+      - 'scripts/verify-service.sh'
+      - 'scripts/verify-billing.sh'
+      - 'Fixtures/Billing/**'
+      - '.github/workflows/licensing-verify.yml'
+      - 'Tests/CIWorkflowChecks/**'
+      - '.github/workflows/catalogue-ci-diagnostics.yml'
+      - '.github/workflows/disposable-ci-diagnostics.yml'
+      - '.github/workflows/verify.yml'
+      - '.github/workflows/macos-runner-smoke.yml'
+      - 'docs/licensing-implementation-plan.md'
+      - 'AGENTS.md'
+permissions:
+  contents: read
+jobs:
+  licensing-fixture:
+    if: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && !(github.event_name == 'workflow_dispatch' && inputs.native_only == true) }}
+    runs-on: [self-hosted, Linux, X64]
+    env:
+      PAT2646_NATIVE_CHECK_MODE: service-only
+    timeout-minutes: 90
+    steps:
+      - name: Confirm approved Linux runner
+        run: |
+          test "$RUNNER_NAME" = patched-linux-01
+          printf 'Runner: %s\nCommit: %s\n' "$RUNNER_NAME" "$GITHUB_SHA"
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6.0.0
+        with:
+          node-version: '24.21.0'
+          package-manager-cache: false
+      - name: Check Linux routing and macOS pause
+        run: node --test Tests/CIWorkflowChecks/workflows.test.mjs
+      - name: Diagnose owned Linux Chrome startup
+        run: |
+          node service/licensing/tests/browser/chrome-startup-controls.mjs
+          node service/licensing/tests/browser/chrome-temp-directory-controls.mjs
+          node service/licensing/tests/browser/chrome-startup-preflight.mjs
+      - name: Verify pinned npm and local fixture
+        run: ./scripts/verify-service.sh
+  licensing-native-bridge:
+    if: ${{ vars.PATCHED_MACOS_ACTIONS_ENABLED == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
+    runs-on: [self-hosted, macOS, ARM64, patched-macos-01]
+    timeout-minutes: 60
+    env:
+      PAT2646_NATIVE_CHECK_MODE: native-required
+    steps:
+      - name: Confirm approved macOS runner
+        run: |
+          test "$RUNNER_NAME" = patched-macos-01
+          test "$RUNNER_OS" = macOS
+          test "$RUNNER_ARCH" = ARM64
+          test "$(id -u)" -ne 0
+          printf 'Runner: %s\nCommit: %s\n' "$RUNNER_NAME" "$GITHUB_SHA"
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6.0.0
+        with:
+          node-version: '24.21.0'
+          package-manager-cache: false
+      - name: Verify pinned npm and local fixture
+        run: ./scripts/verify-service.sh

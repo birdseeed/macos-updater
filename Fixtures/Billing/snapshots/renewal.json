@@ -1,0 +1,140 @@
+{
+  "snapshot": {
+    "fixture": "PAT-2646-snapshot-v1",
+    "environment": "synthetic-sandbox",
+    "subscription": {
+      "id": "sub_fixture_A",
+      "bindingID": "bind_fixture_A",
+      "updatedAt": 1790899200,
+      "status": "active",
+      "renewalGeneration": 1,
+      "currentPeriod": {
+        "transactionID": "txn_fixture_A2",
+        "startsAt": 1790812800,
+        "endsAt": 1822348800
+      },
+      "cancellation": {
+        "state": "none",
+        "effectiveAt": null
+      },
+      "nextCharge": {
+        "kind": "unavailable",
+        "reason": "absent"
+      }
+    },
+    "transactions": [
+      {
+        "id": "txn_fixture_A1",
+        "subscriptionID": "sub_fixture_A",
+        "bindingID": "bind_fixture_A",
+        "updatedAt": 1790899200,
+        "status": "completed",
+        "origin": "existing",
+        "period": {
+          "startsAt": 1759276800,
+          "endsAt": 1790812800
+        },
+        "priceID": "fixture-price-gbp-annual",
+        "currency": "GBP",
+        "quantity": 1,
+        "unitAmount": 1999,
+        "taxInclusive": true
+      },
+      {
+        "id": "txn_fixture_A2",
+        "subscriptionID": "sub_fixture_A",
+        "bindingID": "bind_fixture_A",
+        "updatedAt": 1790899200,
+        "status": "completed",
+        "origin": "renewal",
+        "period": {
+          "startsAt": 1790812800,
+          "endsAt": 1822348800
+        },
+        "priceID": "fixture-price-gbp-annual",
+        "currency": "GBP",
+        "quantity": 1,
+        "unitAmount": 1999,
+        "taxInclusive": true
+      }
+    ],
+    "adjustments": [],
+    "disputes": []
+  },
+  "ledger": {
+    "environment": "synthetic-sandbox",
+    "account": {
+      "accountID": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "revokedAt": null,
+      "entitlementRevision": 1
+    },
+    "entitlementSources": {
+      "accountID": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "trialStartedAt": null,
+      "trialEndsAt": null,
+      "betaInvited": false,
+      "betaEndsAt": null
+    },
+    "billing_subscription": [
+      {
+        "environment": "synthetic-sandbox",
+        "subscription_id": "sub_fixture_A",
+        "account_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "binding_id": "bind_fixture_A",
+        "mapping_revision": 1,
+        "revision": 1,
+        "provider_updated_at": 0,
+        "canonical_sha256": "e4ae2368a2b9935adb36f62bc0953b5e3b409860aaff398a4099fdd23d67fc21",
+        "canonical_json": "{\"bindingID\":\"bind_fixture_A\",\"cancellation\":{\"effectiveAt\":null,\"state\":\"none\"},\"currentPeriod\":null,\"id\":\"sub_fixture_A\",\"nextCharge\":{\"kind\":\"unavailable\",\"reason\":\"absent\"},\"renewalGeneration\":1,\"status\":\"active\",\"updatedAt\":0}",
+        "status": "active",
+        "cancellation_state": "none",
+        "cancellation_effective_at": null,
+        "renewal_generation": 1,
+        "notice_revision": 1,
+        "next_charge_json": "{\"kind\":\"unavailable\",\"reason\":\"absent\"}",
+        "commit_nonce": "11111111111111111111111111111111"
+      }
+    ],
+    "billing_existing_transaction": [
+      {
+        "environment": "synthetic-sandbox",
+        "subscription_id": "sub_fixture_A",
+        "account_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "transaction_id": "txn_fixture_A1",
+        "commit_nonce": "11111111111111111111111111111111"
+      }
+    ],
+    "billing_reconcile": [
+      {
+        "environment": "synthetic-sandbox",
+        "subscription_id": "sub_fixture_A",
+        "account_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "wanted": 1,
+        "done": 0,
+        "claim_generation": 1,
+        "claimed_wanted": 1,
+        "claim_fence": "11111111111111111111111111111111",
+        "claim_expires_at": 1790899500,
+        "read_generation": 1,
+        "failures": 0,
+        "commit_nonce": "11111111111111111111111111111111"
+      }
+    ],
+    "billing_event_consumed": [],
+    "billing_snapshot": [],
+    "billing_entity_version": [],
+    "billing_period": [],
+    "billing_period_end": [],
+    "billing_restoration": [],
+    "billing_adjustment": [],
+    "billing_dispute": [],
+    "billing_grace": [],
+    "billing_grace_void": [],
+    "billing_renewal_stop": [],
+    "billing_stop_cause": [],
+    "billing_lifecycle_request": [],
+    "billing_review_confirmation": [],
+    "billing_lifecycle_commit": []
+  },
+  "now": 1790899200
+}

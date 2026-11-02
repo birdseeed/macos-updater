@@ -1,0 +1,6 @@
+version: 2.0.0
+files:
+  - url: https://downloads.example.test/app-2.zip
+    sha512: Rv4s+AiuDbxD/FwQ3W/g4RxoUrKmpKxcl31xnRSZN/Hs/oScOhNpfz21rQrCOjctLjxRErbgUUlvna4S642hIw==
+    size: 51
+releaseDate: 2026-10-14T00:00:00.000Z

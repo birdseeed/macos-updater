@@ -1,0 +1,20 @@
+{
+  "data": {
+    "environment": "synthetic-sandbox",
+    "subject_id": "sub_fixture_unknown",
+    "price_id": "fixture-price-gbp-annual",
+    "currency": "GBP",
+    "quantity": 1,
+    "detail": {
+      "label": "BODY-SENTINEL-2645 café",
+      "flags": [
+        true,
+        false
+      ]
+    }
+  },
+  "notification_id": "ntf_fixture_one",
+  "occurred_at": 1700000000,
+  "event_type": "subscription.updated",
+  "event_id": "evt_fixture_one"
+}

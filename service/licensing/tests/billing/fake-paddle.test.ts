@@ -1,0 +1,11 @@
+import {describe,it,expect} from 'vitest';
+import {RefusingLifecycleProvider} from '../../src/billing/paddle';
+import {BillingLifecycle} from '../../src/billing/reconcile';
+import {FakePaddle,fixture,encode,dependencies,ordinary,cancelInput} from './fake-paddle';
+const target={environment:'synthetic-sandbox' as const,subscriptionID:'sub_fixture_A'};
+describe('closed synthetic provider seam and refusing defaults',()=>{
+ it('ordinary provider cannot read or stop renewal',async()=>{const p=new RefusingLifecycleProvider();expect(await p.read({...target,bindingID:'bind_fixture_A',readGeneration:1})).toEqual({outcome:'unavailable'});expect(await p.stopRenewal({...target,renewalGeneration:1,dispatchID:'1'.repeat(32),effective:'next-period'})).toEqual({outcome:'rejected'});});
+ for(const method of ['consumeInbox','requestSweep','reconcile','cancellationDescriptor','cancel','reviewReversal','dispatchStop','readStatus'] as const)it(`default ${method} refuses`,async()=>{const s=new BillingLifecycle();expect(await (s[method] as any)(method==='cancel'?cancelInput:method==='readStatus'?ordinary:target)).toEqual({outcome:'refused'});});
+ for(const bad of [undefined,null,{},'live',{...dependencies({} as D1Database),marker:'wrong'},{...dependencies({} as D1Database),config:undefined}])it(`missing/mixed dependencies refuse with zero effects ${String(bad)}`,async()=>{let calls=0;const db={prepare(){calls++;throw Error('unexpected database');},batch(){calls++;throw Error('unexpected batch');}} as unknown as D1Database;const d={...dependencies(db),...(typeof bad==='object'&&bad!==null?bad:{}),config:bad};const p=d.provider as FakePaddle;const s=new BillingLifecycle(d as any);expect(await s.reconcile(target)).toEqual({outcome:'refused'});expect(calls).toBe(0);expect(p.reads).toHaveLength(0);expect(p.stops).toHaveLength(0);});
+ it('fake provider copies commands before await and output bytes',async()=>{const p=new FakePaddle(encode(fixture('existing-gbp').snapshot));let release!:()=>void;p.beforeRead=()=>new Promise(r=>release=r);const command={...target,bindingID:'bind_fixture_A',readGeneration:1};const pending=p.read(command);command.subscriptionID='sub_fixture_foreign';release();const r=await pending;expect(p.reads[0].subscriptionID).toBe('sub_fixture_A');if(r.outcome==='snapshot')r.bytes[0]=0;expect((p.readOutcome as any).bytes[0]).toBe(123);});
+});

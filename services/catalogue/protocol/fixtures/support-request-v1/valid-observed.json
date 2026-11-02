@@ -1,0 +1,31 @@
+{
+  "schema": "fixture-support-request-v1",
+  "clientRequestID": "00000000-0000-4000-a000-000000000002",
+  "submittedAt": 1800000000,
+  "app": {
+    "displayName": {
+      "value": "Fixture Café 🧪",
+      "provenance": "locallyObserved"
+    },
+    "bundleID": {
+      "value": "test.example.fixture-app",
+      "provenance": "locallyObserved"
+    },
+    "version": {
+      "value": "Release β / build 42",
+      "provenance": "locallyObserved"
+    },
+    "vendorURL": {
+      "value": "https://vendor.example.test:443/apps/fixture@preview",
+      "provenance": "userSupplied"
+    }
+  },
+  "notes": "Fixture-only literal text.\n\t<script>inert</script> \"quoted\"",
+  "consent": {
+    "schema": "fixture-support-consent-v1",
+    "purpose": "coverage-research",
+    "destination": "patched-catalogue-support",
+    "presentedAt": 1799999998,
+    "acceptedAt": 1799999999
+  }
+}

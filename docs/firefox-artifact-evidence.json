@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "purpose": "PAT-2580 exact Firefox inspection targets; no installation authority",
+  "targets": [
+    {
+      "version": "157.0",
+      "url": "https://archive.mozilla.org/pub/firefox/releases/157.0/mac/en-US/Firefox%20157.0.dmg",
+      "sha256": "df6d8c79b6126bcf24cb70ebab9371916a662028e2d706e462d432e78fdf396c",
+      "byteLength": 161304638,
+      "bundleID": "org.mozilla.firefox",
+      "teamID": "43AQ936H96",
+      "architectures": [
+        "arm64",
+        "x86_64"
+      ]
+    },
+    {
+      "version": "157.0.1",
+      "url": "https://archive.mozilla.org/pub/firefox/releases/157.0.1/mac/en-US/Firefox%20157.0.1.dmg",
+      "sha256": "40a0a649120635460256dae9ad63e40377f77326cbc9c449a5d0a1d7f5dd7982",
+      "byteLength": 161550118,
+      "bundleID": "org.mozilla.firefox",
+      "teamID": "43AQ936H96",
+      "architectures": [
+        "arm64",
+        "x86_64"
+      ]
+    }
+  ],
+  "historicalEvidence": {
+    "observedDate": "2026-10-07",
+    "osVersion": "27.0.1",
+    "osBuild": "26A434",
+    "hostArchitecture": "arm64",
+    "rawReportPath": "/Users/example/Documents/Patched/proofs/firefox-inspection-20261007/report.json",
+    "rawReportSHA256": "dbd27c47e7d45664b5707e3c43b1e4cd0161f81c225a33f813f7792207cb4101",
+    "parentAssessmentPath": "/Users/example/Documents/Patched/proofs/firefox-inspection-20261007/parent-assessment.json",
+    "appObservation": "Both app payloads passed deep strict codesign, exact Team ID, Gatekeeper execute accepted Notarized Developer ID and stapler validation.",
+    "containerObservation": "Both DMGs were unsigned: codesign exit 1, Gatekeeper open exit 3 and stapler exit 65. Raw overall inspection_pass is false; preserve it.",
+    "checksumObservation": "Exact mac/en-US SHA256SUMS entries corroborated by parent; no GPG verification claimed.",
+    "limitations": "Historical observations, not fresh OS validation, signed catalogue trust, installation or release proof."
+  }
+}

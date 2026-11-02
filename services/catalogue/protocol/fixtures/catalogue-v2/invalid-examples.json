@@ -1,0 +1,25 @@
+{
+  "warning": "Bounded parser-negative byte examples; hex is exact.",
+  "cases": [
+    {
+      "name": "duplicate-escaped-key",
+      "hex": "7b22736368656d61223a312c225c75303037336368656d61223a327d"
+    },
+    {
+      "name": "utf8-overlong",
+      "hex": "7b2278223a22c0af227d"
+    },
+    {
+      "name": "lone-surrogate",
+      "hex": "7b2278223a225c7564383030227d"
+    },
+    {
+      "name": "bom",
+      "hex": "efbbbf7b7d"
+    },
+    {
+      "name": "trailing",
+      "hex": "7b7d307d"
+    }
+  ]
+}

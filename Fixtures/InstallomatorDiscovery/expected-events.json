@@ -1,0 +1,24 @@
+{
+  "schema": "fixture-expected-events-v1",
+  "initial": [
+    {
+      "kind": "added",
+      "path": "fragments/labels/dynamic-held.sh"
+    },
+    {
+      "kind": "added",
+      "path": "fragments/labels/literal-valid.sh"
+    },
+    {
+      "kind": "added",
+      "path": "fragments/labels/malformed-held.sh"
+    }
+  ],
+  "unchanged": [],
+  "withdrawn": [
+    {
+      "kind": "withdrawn-upstream",
+      "path": "fragments/labels/literal-valid.sh"
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+[
+  {"name":"before UTC deadline","utc":199,"monotonic":109,"boot":"boot-A","trusted":true,"expected":"paused"},
+  {"name":"exact UTC deadline","utc":200,"monotonic":110,"boot":"boot-A","trusted":true,"expected":"eligible"},
+  {"name":"after deadline","utc":201,"monotonic":111,"boot":"boot-A","trusted":true,"expected":"eligible"},
+  {"name":"wall rollback","utc":90,"monotonic":110,"boot":"boot-A","trusted":true,"expected":"clock"},
+  {"name":"wall jumps ahead","utc":201,"monotonic":11,"boot":"boot-A","trusted":true,"expected":"clock"},
+  {"name":"monotonic rollback","utc":200,"monotonic":9,"boot":"boot-A","trusted":true,"expected":"clock"},
+  {"name":"restart uncertain clock","utc":201,"monotonic":1,"boot":"boot-B","trusted":false,"expected":"clock"},
+  {"name":"restart trustworthy UTC","utc":201,"monotonic":1,"boot":"boot-B","trusted":true,"expected":"eligible"},
+  {"name":"restart before deadline","utc":199,"monotonic":1,"boot":"boot-B","trusted":true,"expected":"paused"},
+  {"name":"negative monotonic","utc":201,"monotonic":-1,"boot":"boot-B","trusted":true,"expected":"clock"}
+]

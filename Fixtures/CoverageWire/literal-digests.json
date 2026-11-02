@@ -1,0 +1,21 @@
+{
+  "report-minimal.json": {
+    "bytes": 186,
+    "sha256": "700f1f929b9c5f45e6f68959982c5c567dee233f568b9924acd3b36ce8a56275"
+  },
+  "report-unicode.json": {
+    "bytes": 274,
+    "sha256": "5e2c8154136295d6b4fbb274bd96bb2c83c58ff7d0f8adeec52d42238dc49389"
+  },
+  "report-ten.json": {
+    "bytes": 731,
+    "sha256": "ac3dc776234ad02bba9dad22178bfea04d4d8568902fefb0b646266336f589ef"
+  },
+  "deletion.json": {
+    "bytes": 135,
+    "sha256": "bc19c0e122d14917651294134b6d7f2375842007f6ef8ddc547bbbf76a19c2ac"
+  },
+  "strict-json.mjs": {
+    "sha256": "e77ec6218115f993ffea791e0dfc201b0dcb68a5b6d76158e28b6a135691fded"
+  }
+}

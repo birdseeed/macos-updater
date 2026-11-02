@@ -1,0 +1,42 @@
+import assert from 'node:assert/strict';
+import {createRequire,syncBuiltinESMExports} from 'node:module';
+import {readFileSync} from 'node:fs';
+import {resolve,dirname} from 'node:path';
+import {fileURLToPath} from 'node:url';
+const service=resolve(dirname(fileURLToPath(import.meta.url)),'../..'),require=createRequire(resolve(service,'package.json'));
+const cp=require('node:child_process'),esbuild=require('esbuild');
+const module=require.cache[require.resolve('esbuild')],original=module.exports,spawn=cp.spawn;
+const preparationOnly=process.argv.includes('--preparation-only');
+assert.ok(process.argv.slice(2).every(arg=>arg==='--preparation-only'),'unknown runtime-control option');
+const selectedStatus=preparationOnly?503:200;
+const inputs=new Set();let launches=0;let r;
+module.exports={...esbuild,async build(options){const result=await esbuild.build({...options,metafile:true});for(const input of Object.keys(result.metafile.inputs))inputs.add(input);return result;}};
+cp.spawn=function(command,args,options){if(/(?:^|[/\\])workerd(?:\.exe)?$/.test(String(command))){launches++;for(const [name,value]of Object.entries(options.env)){assert.ok(!/^(?:CLOUDFLARE_(?:API|ACCOUNT|TOKEN)|CF_API_|AWS_|GITHUB_TOKEN|GH_TOKEN|OPENAI_API_KEY|PAT2649_ENV_CANARY)/.test(name));assert.ok(!String(value).includes('private-web-environment-canary'));}}return spawn.call(this,command,args,options);};syncBuiltinESMExports();
+const saved=process.env.PAT2649_ENV_CANARY;process.env.PAT2649_ENV_CANARY='private-web-environment-canary';
+const web={marker:'PAT-2649-account-runtime-synthetic',allowedOrigin:'https://account.patched-fixture.invalid:43123',now:1791763200,entropySeed:'11'.repeat(16)};
+const get=async path=>{const response=await fetch(r.owner.origin+path,{headers:{Connection:'close'},signal:AbortSignal.timeout(10000)});await response.arrayBuffer();return response.status;};
+try {
+ const {accountWebRuntime,hostEntropy}=await import('./account-web-runtime.ts');
+ r=await accountWebRuntime(web);const run=r.owner.run;
+ for(const suffix of ['src/index.ts','src/auth.ts','src/store.ts','src/web/account.ts','account-web-entry.ts','index.html','account.js','account.css'])assert.ok([...inputs].some(x=>x.includes(suffix)),'actual bundled input '+suffix);
+ assert.equal(await get('/__fixture/web/account'),selectedStatus,'selected source handler '+(preparationOnly?'held-stub preparation':'normal success'));
+ const commit=await fetch(r.owner.origin+'/__fixture/commit',{method:'POST',headers:{Connection:'close'},signal:AbortSignal.timeout(10000)});assert.equal(commit.status,200);await commit.arrayBuffer();
+ assert.equal((await r.owner.db.prepare('SELECT revision FROM t0_guard WHERE id=1').first()).revision,1,'HTTP and direct D1 same owner');
+ await r.owner.db.prepare("DELETE FROM t0_events WHERE id='committed'").run();assert.equal((await fetch(r.owner.origin+'/__fixture/commit',{method:'POST',headers:{Connection:'close'}})).status,200,'direct write affects source HTTP');
+ const before=(await r.owner.db.prepare('SELECT * FROM t0_guard').all()).results;
+ await assert.rejects(r.owner.db.batch([r.owner.db.prepare('UPDATE t0_guard SET revision=99'),r.owner.db.prepare("INSERT INTO t0_events VALUES ('seed','collision')")]));
+ assert.deepEqual((await r.owner.db.prepare('SELECT * FROM t0_guard').all()).results,before,'actual D1 rollback');
+ const issued=await r.provision({email:'infrastructure@example.invalid',purpose:'web-sign-in',sourceIP:'192.0.2.249'},'22'.repeat(16));assert.equal(issued.status,selectedStatus,'source issuer '+(preparationOnly?'held-stub preparation':'normal success')+' after actual S1');if(preparationOnly)assert.equal(issued.headers.get('set-cookie'),null);else assert.ok(issued.headers.get('set-cookie'),'normal successful issuer emits cookie');
+ assert.equal((await r.owner.db.prepare("SELECT COUNT(*) AS n FROM sessions WHERE kind='web'").first()).n,1,'actual source web session persisted');
+ const origin=r.owner.origin;
+ for(const change of [{...web,extra:1},{...web,allowedOrigin:web.allowedOrigin+'?'},{...web,allowedOrigin:'https://sibling.patched-fixture.invalid:43123'},{...web,entropySeed:'0'.repeat(32)},{...web,now:NaN}]){await assert.rejects(r.owner.restart({web:change}));assert.equal(r.owner.origin,origin,'invalid config preserves live owner');}
+ await r.owner.restart();assert.equal(r.owner.run,run);assert.equal((await r.owner.db.prepare('SELECT COUNT(*) AS n FROM sessions').first()).n,1);
+ assert.equal((await r.owner.outboundCanary()).status,500);assert.equal(await get('/__fixture/web/account'),selectedStatus,'outbound canary restores selected source');
+ await r.owner.restart({web:null});assert.equal(await get('/__fixture/web/account'),503,'default source refuses without composition');
+ await r.owner.restart({web:{...web,entropySeed:'33'.repeat(16)}});assert.equal(await get('/__fixture/web/account'),selectedStatus,'recomposed selected handler');
+ const rng=hostEntropy('44'.repeat(16));assert.equal(rng(4096).length,4096);assert.throws(()=>rng(1),/exhausted/);
+ await assert.rejects(r.provision({email:'infrastructure@example.invalid',purpose:'web-sign-in',sourceIP:'192.0.2.249'},'22'.repeat(16)),/seed reuse/);
+ assert.equal(launches,6,'one owner per explicit selected/default/canary boot');
+ assert.ok(!r.owner.logs.join('\n').includes('infrastructure@example.invalid'));assert.ok(!r.owner.logs.join('\n').includes('private-web-environment-canary'));
+ console.log('ACCOUNT-WEB-INFRA '+(preparationOnly?'PREPARATION held-stub':'NORMAL success')+' passed: fixed imports/assets, real S1, same D1, rollback, restart, closed config, entropy, outbound, native environment');
+}finally{await r?.dispose();cp.spawn=spawn;syncBuiltinESMExports();module.exports=original;if(saved===undefined)delete process.env.PAT2649_ENV_CANARY;else process.env.PAT2649_ENV_CANARY=saved;}

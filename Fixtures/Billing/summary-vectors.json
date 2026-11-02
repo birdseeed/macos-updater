@@ -1,0 +1,90 @@
+{
+  "fixture": "PAT-2646-display-only",
+  "valid": [
+    {
+      "schemaVersion": 1,
+      "subscriptionID": "sub_fixture_A",
+      "status": "active",
+      "paidThrough": 1790812800,
+      "renewsAt": null,
+      "cancellation": {
+        "state": "none",
+        "accessEnds": null
+      },
+      "payment": {
+        "state": "current",
+        "graceDeadline": null
+      },
+      "refund": "none",
+      "endReason": null
+    },
+    {
+      "schemaVersion": 1,
+      "subscriptionID": "sub_fixture_A",
+      "status": "pastDue",
+      "paidThrough": 1790812800,
+      "renewsAt": null,
+      "cancellation": {
+        "state": "none",
+        "accessEnds": null
+      },
+      "payment": {
+        "state": "failed",
+        "graceDeadline": 1791417600
+      },
+      "refund": "none",
+      "endReason": null
+    },
+    {
+      "schemaVersion": 1,
+      "subscriptionID": "sub_fixture_A",
+      "status": "cancelling",
+      "paidThrough": 1790812800,
+      "renewsAt": null,
+      "cancellation": {
+        "state": "requested",
+        "accessEnds": 1791417600
+      },
+      "payment": {
+        "state": "failed",
+        "graceDeadline": 1791417600
+      },
+      "refund": "none",
+      "endReason": null
+    },
+    {
+      "schemaVersion": 1,
+      "subscriptionID": "sub_fixture_A",
+      "status": "cancelling",
+      "paidThrough": null,
+      "renewsAt": null,
+      "cancellation": {
+        "state": "scheduled",
+        "accessEnds": 1791158400
+      },
+      "payment": {
+        "state": "current",
+        "graceDeadline": null
+      },
+      "refund": "none",
+      "endReason": null
+    },
+    {
+      "schemaVersion": 1,
+      "subscriptionID": "sub_fixture_A",
+      "status": "ended",
+      "paidThrough": null,
+      "renewsAt": null,
+      "cancellation": {
+        "state": "none",
+        "accessEnds": null
+      },
+      "payment": {
+        "state": "ended",
+        "graceDeadline": null
+      },
+      "refund": "none",
+      "endReason": "expired"
+    }
+  ]
+}

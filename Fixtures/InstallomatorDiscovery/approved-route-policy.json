@@ -1,0 +1,18 @@
+{
+  "schema": "fixture-route-policy-v1",
+  "version": "policy-v1",
+  "routes": [
+    {
+      "routeId": "fixture-app",
+      "version": "route-v1",
+      "labelPath": "fragments/labels/literal-valid.sh",
+      "name": "Fixture App",
+      "type": "dmg",
+      "downloadURL": "https://downloads.example.test/fixture-v1.dmg",
+      "claimedTeamID": "AAAAAAAAAA",
+      "channel": "stable",
+      "artifactSha256": "f6d76122c04c86a92a5de8235a5afb2a9ee51e184216798b16bd7064028b6ae6",
+      "artifactByteLength": 20
+    }
+  ]
+}

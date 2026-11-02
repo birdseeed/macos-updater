@@ -1,0 +1,35 @@
+name: Catalogue CI diagnostics
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  diagnostics:
+    if: ${{ vars.PATCHED_MACOS_ACTIONS_ENABLED == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
+    runs-on: [self-hosted, macOS, ARM64, patched-macos-01]
+    timeout-minutes: 3
+    steps:
+      - name: Confirm approved macOS runner
+        run: |
+          test "$RUNNER_NAME" = patched-macos-01
+          test "$RUNNER_OS" = macOS
+          test "$RUNNER_ARCH" = ARM64
+          test "$(id -u)" -ne 0
+          printf 'Runner: %s\nCommit: %s\n' "$RUNNER_NAME" "$GITHUB_SHA"
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6.0.0
+        with:
+          node-version: '24.21.0'
+          package-manager-cache: false
+      - name: Check observer with public fixtures
+        run: node --test Tests/CatalogueCIDiagnostics/observer.test.mjs
+      - name: Prepare existing Swift vectors required by the Node suite
+        run: |
+          mkdir -p .build/catalogue-protocol-module-cache
+          swift -module-cache-path .build/catalogue-protocol-module-cache tools/catalogue-protocol-vectors.swift > .build/catalogue-protocol-swift-vectors.json
+      - name: Observe the real catalogue Node child
+        run: node scripts/catalogue-ci-observer.mjs

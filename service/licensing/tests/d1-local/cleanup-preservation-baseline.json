@@ -1,0 +1,790 @@
+{
+  "originalSHA256": "ba4ab1ae40589fd17f4e08b77b68f268e708e5076e215a30f93e38bc0ad4626e",
+  "originalSource": "// Actual local D1/workerd only. Runtime fixture controls are synthetic facts, never authority.\nimport assert from 'node:assert/strict';\nimport { test } from 'node:test';\nimport { spawn, spawnSync } from 'node:child_process';\nimport { mkdtempSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';\nimport { dirname, resolve } from 'node:path';\nimport { fileURLToPath } from 'node:url';\nimport { once } from 'node:events';\nconst service = resolve(dirname(fileURLToPath(import.meta.url)), '../..');\nconst root = realpathSync(resolve(service,'../..'));\nconst build = resolve(root,'.build'); mkdirSync(build,{recursive:true}); assert.equal(realpathSync(build),build);\nconst run = mkdtempSync(resolve(build,'licensing-s1b-d1-'));\nconst source = JSON.parse(readFileSync(resolve(service,'wrangler.jsonc'),'utf8'));\nassert.deepEqual(source.vars,{ENVIRONMENT:'local-fixture',FIXTURE_MARKER:'PAT-2639-local-only',PROVIDER_MODE:'fake'});\nassert.deepEqual(source.d1_databases,[{binding:'FIXTURE_DB',database_name:'licensing-local-fixture',database_id:'00000000-0000-0000-0000-000000000000',remote:false}]);\nassert.equal(source.workers_dev,false); assert.equal(source.preview_urls,false); assert.equal(source.account_id,undefined); assert.equal(source.routes,undefined); assert.equal(source.env,undefined);\nconst config = resolve(run,'wrangler.json'); writeFileSync(config,JSON.stringify({...source,main:resolve(service,'src/index.ts')}));\nconst cli = resolve(service,'node_modules/wrangler/wrangler-dist/cli.js');\nconst env = {PATH:process.env.PATH,TMPDIR:run,XDG_CONFIG_HOME:resolve(run,'config'),WRANGLER_SEND_METRICS:'false',CLOUDFLARE_LOAD_DEV_VARS_FROM_DOT_ENV:'false',CI:'true',NO_COLOR:'1'};\nconst common = ['--config',config,'--persist-to',resolve(run,'state')];\nfunction d1(args: string[]): string {\n const result = spawnSync(process.execPath,[cli,'d1','execute','FIXTURE_DB','--local',...common,...args],{cwd:run,env,encoding:'utf8',timeout:30000,killSignal:'SIGKILL'});\n assert.equal(result.status,0,`D1 command failed: ${result.stderr}\\n${result.stdout}`); return result.stdout;\n}\nfunction rows(sql: string): Record<string,unknown>[] { const output=JSON.parse(d1(['--command',sql,'--json'])); assert.equal(output.length,1); assert.equal(output[0].success,true); return output[0].results; }\nfunction count(table: string): number { assert.match(table,/^(accounts|account_guard|sessions|challenges|account_audit|used_refresh_tokens|account_requests|request_limits)$/); return Number(rows(`SELECT COUNT(*) AS n FROM ${table}`)[0].n); }\nfunction snapshot(): unknown { return ['accounts','account_guard','sessions','challenges','account_audit','account_requests','entitlement_sources','trial_markers','trial_requests','lease_heads','retention_rows','account_nonce_history'].map(t=>rows(`SELECT * FROM ${t} ORDER BY 1`)); }\nfunction guard(s:Record<string,unknown>,nonce='n'+(++requestCounter)):Record<string,unknown> {const g=rows(`SELECT * FROM account_guard WHERE account_id='${s.accountID}'`)[0];return {accountID:s.accountID,accountRevision:g.account_revision,commitNonce:nonce};}\nfunction start(s:Record<string,unknown>,requestID='r'+(++requestCounter),now=initial,g=guard(s),requestHash='f'.repeat(64)){return post('s1b/start',{credential:credential(s),guard:g,requestID,requestHash},now);}\nfunction deletion(s:Record<string,unknown>,now=initial){return post('s1b/delete',{credential:credential(s),guard:guard(s)},now);}\nfunction cleanup(s:Record<string,unknown>,now:number,dryRun=false,g=guard(s)){return post('s1b/cleanup',{guard:g,limit:100,dryRun},now);}\nd1(['--file',resolve(service,'migrations/0001_accounts.sql')]);\nassert.equal(count('accounts'),0); assert.equal(count('sessions'),0);\nlet output='';\nconst child=spawn(process.execPath,[cli,'dev','--local',...common,'--ip','127.0.0.1','--port','0','--inspector-port','0','--show-interactive-dev-session=false'],{cwd:run,env,stdio:['ignore','pipe','pipe']});\nchild.stdout.on('data',b=>{output+=b;});child.stderr.on('data',b=>{output+=b;});\nlet origin=''; const initial=1791734400; const code='01234567'; let emailCounter=0; let requestCounter=0; let ipCounter=0;\nfunction email(): string { return `case${++emailCounter}@example.invalid`; }\nasync function post(route:string, input:unknown, now=initial, delivery='capture', key='PAT-2642-synthetic', seed=(++requestCounter).toString(16).padStart(32,'0')) {\n const response=await fetch(origin+(route.startsWith('s1b/')?'/__fixture/licensing/'+route.slice(4):'/__fixture/accounts/'+route),{method:'POST',headers:{'Connection':'close','Content-Type':'application/json','x-fixture-now':String(now),'x-fixture-delivery':delivery,'x-fixture-key':route.startsWith('s1b/')?'PAT-2643-synthetic':key,'x-fixture-seed':seed,...(route.startsWith('s1b/')?{'x-fixture-signing-seed':Buffer.from('Patched-L1-TEST-ONLY-KEY-SEED-01').toString('base64')}:{})},body:JSON.stringify(input),redirect:'error',signal:AbortSignal.timeout(10000)});\n\n return {status:response.status,body:await response.json() as Record<string,unknown>};\n}\nasync function request(address:string,purpose='app-sign-in',now=initial,binding?:unknown,sourceIP=`192.0.${Math.floor(++ipCounter/250)}.${ipCounter%250+1}`) {\n const result=await post('request',{email:address,purpose,sourceIP,...(binding?{binding}:{})},now); assert.equal(result.status,202);assert.deepEqual(Object.keys(result.body).sort(),['challengeID','outcome']);assert.equal(result.body.outcome,'accepted');assert.match(String(result.body.challengeID),/^[a-f0-9]{32}$/);return String(result.body.challengeID);\n}\nasync function consume(challengeID:string,purpose='app-sign-in',now=initial,binding?:unknown,attemptCode=code) { return post('consume',{challengeID,purpose,code:attemptCode,...(binding?{binding}:{})},now); }\nasync function signedIn(address=email(),purpose='app-sign-in',now=initial) { const challenge=await request(address,purpose,now);const result=await consume(challenge,purpose,now);assert.equal(result.status,200);assert.equal(result.body.outcome,'signed-in');assert.match(String(result.body.accountID),/^[a-f0-9]{32}$/);assert.match(String(result.body.sessionID),/^[a-f0-9]{32}$/);assert.match(String(result.body.accessToken),/^[a-f0-9]{64}$/);assert.deepEqual(Object.keys(result.body).sort(),(purpose==='app-sign-in'?['outcome','accountID','sessionID','accessToken','accessExpiresAt','expiresAt','refreshToken']:['outcome','accountID','sessionID','accessToken','accessExpiresAt','expiresAt']).sort());return result.body; }\nfunction credential(s:Record<string,unknown>) { return {sessionID:s.sessionID,accessToken:s.accessToken}; }\nfunction binding(s:Record<string,unknown>) { return {accountID:s.accountID,sessionID:s.sessionID}; }\nasync function refusedConsume(challenge:string,purpose='app-sign-in',now=initial,b?:unknown,c=code) { const r=await consume(challenge,purpose,now,b,c);assert.equal(r.status,401);assert.deepEqual(r.body,{outcome:'refused'}); }\n\ntry {\n const deadline=Date.now()+30000;\n while(Date.now()<deadline) { origin=output.match(/Ready on (http:\\/\\/127\\.0\\.0\\.1:\\d+)/)?.[1]??'';if(origin)break;assert.equal(child.exitCode,null,`worker exited ${output}`);await new Promise(r=>setTimeout(r,100)); }\n assert.ok(origin,`worker not ready ${output}`);\n await test('real sign-in has no trial side effect',async()=>{const s=await signedIn();assert.deepEqual(rows(`SELECT * FROM entitlement_sources WHERE account_id='${s.accountID}'`),[]);assert.equal(rows('SELECT COUNT(*) AS n FROM trial_requests')[0].n,0);});\n await test('N-way explicit trial exactly one shared guard/audit/nonce winner',async()=>{const s=await signedIn();const g=guard(s);const results=await Promise.all(Array.from({length:10},(_,i)=>start(s,'race'+i,initial,{...g,commitNonce:'trial-'+i})));assert.equal(results.filter(r=>r.status===200&&r.body.outcome==='started').length,1);assert.ok(results.every(r=>[200,409].includes(r.status)));const source=rows(`SELECT * FROM entitlement_sources WHERE account_id='${s.accountID}'`)[0];assert.equal(source.trial_started_at,initial);assert.equal(source.trial_ends_at,initial+1209600);const current=rows(`SELECT * FROM account_guard WHERE account_id='${s.accountID}'`)[0];assert.equal(current.account_revision,Number(g.accountRevision)+1);const audit=rows(`SELECT * FROM account_audit WHERE account_id='${s.accountID}' AND action='trial-start'`);assert.equal(audit.length,1);assert.equal(audit[0].commit_nonce,current.commit_nonce);assert.equal(rows(`SELECT entitlement_revision FROM accounts WHERE account_id='${s.accountID}'`)[0].entitlement_revision,1);});\n await test('exact retry replays stored response, changed hash refuses, another key never redates',async()=>{const s=await signedIn();const g=guard(s);const a=await start(s,'same',initial,g);assert.equal(a.status,200);const before=snapshot();const replay=await start(s,'same',initial+1,g);assert.deepEqual(replay,a);assert.deepEqual(snapshot(),before);assert.equal((await start(s,'same',initial+1,g,'e'.repeat(64))).status,409);const next=await start(s,'next',initial+1);assert.equal(next.body.outcome,'existing');assert.equal(next.body.startedAt,initial);assert.equal(next.body.expiresAt,initial+1209600);});\n await test('active beta refusal changes no history; beta end preserves full future trial',async()=>{const s=await signedIn();d1(['--command',`INSERT INTO entitlement_sources(account_id,beta_invited,beta_ends_at) VALUES('${s.accountID}',1,${initial+60});`]);const before=snapshot();const r=await start(s);assert.equal(r.status,409);assert.deepEqual(r.body,{outcome:'trial-unavailable-during-beta'});assert.deepEqual(snapshot(),before);const after=await start(s,'after-beta',initial+60);assert.equal(after.status,200);assert.equal(after.body.startedAt,initial+60);assert.equal(after.body.expiresAt,initial+60+1209600);});\n await test('stale guard/reused nonce/overflow cannot mutate or grant',async()=>{const s=await signedIn();const g=guard(s);const before=snapshot();for(const input of [{...g,accountRevision:-1},{...g,accountRevision:Number.MAX_SAFE_INTEGER},{...g,commitNonce:rows(`SELECT commit_nonce FROM account_guard WHERE account_id='${s.accountID}'`)[0].commit_nonce}]){assert.notEqual((await start(s,'invalid',initial,input)).status,200);assert.deepEqual(snapshot(),before);}assert.notEqual((await start(s,'overflow',253402300799)).status,200);assert.deepEqual(snapshot(),before);});\n await test('audit failure atomically rolls back trial and retry receipt',async()=>{const s=await signedIn();d1(['--command',\"CREATE TRIGGER s1b_fail_audit BEFORE INSERT ON account_audit WHEN NEW.action='trial-start' BEGIN SELECT RAISE(ABORT,'synthetic audit denied'); END;\"]);try{const before=snapshot();assert.notEqual((await start(s)).status,200);assert.deepEqual(snapshot(),before);}finally{d1(['--command','DROP TRIGGER s1b_fail_audit;']);}});\n await test('cross-account credential refuses despite valid target guard',async()=>{const a=await signedIn();const b=await signedIn();const before=snapshot();assert.notEqual((await start(a,'foreign',initial,guard(b))).status,200);assert.deepEqual(snapshot(),before);});\n await test('deletion revokes sessions and strips old email association; fresh registration marker never extends',async()=>{const address=email();const s=await signedIn(address);assert.equal((await start(s)).status,200);const h=rows(`SELECT email_hmac FROM accounts WHERE account_id='${s.accountID}'`)[0].email_hmac;assert.equal((await deletion(s)).status,200);const old=rows(`SELECT * FROM accounts WHERE account_id='${s.accountID}'`)[0];assert.equal(old.email_hmac,'deleted:'+s.accountID);assert.equal(old.revoked_at,initial);assert.equal((await post('authenticate',credential(s))).status,401);const marker=rows(`SELECT * FROM trial_markers WHERE email_hmac='${h}'`)[0];assert.equal(marker.original_deleted_at,initial);assert.equal(marker.expires_at,1823270400);const fresh=await signedIn(address,'app-sign-in',initial+60);assert.notEqual(fresh.accountID,s.accountID);assert.notEqual((await start(fresh,'blocked',initial+60)).status,200);assert.equal((await deletion(fresh,initial+60)).status,200);assert.deepEqual(rows(`SELECT * FROM trial_markers WHERE email_hmac='${h}'`)[0],marker);});\n for(const delta of [-1,0,1])await test(`fresh actual sign-in trial at fixed marker boundary ${delta}`,async()=>{const address=email();const s=await signedIn(address);assert.equal((await start(s)).status,200);assert.equal((await deletion(s)).status,200);const t=1823270400+delta;const fresh=await signedIn(address,'app-sign-in',t);const r=await start(fresh,'boundary',t);assert.equal(r.status,delta<0?409:200);if(delta>=0){assert.equal(r.body.startedAt,t);assert.equal(r.body.expiresAt,t+1209600);}assert.equal(rows(`SELECT trial_started_at FROM entitlement_sources WHERE account_id='${s.accountID}'`)[0].trial_started_at,initial);});\n await test('cleanup dry run then actual challenge/session/retry/audit TTLs is idempotent',async()=>{const s=await signedIn();assert.equal((await start(s)).status,200);const now=initial+800*86400;const before=snapshot();const dry=await cleanup(s,now,true);assert.equal(dry.status,200);assert.ok(Number(dry.body.eligible)>0);assert.deepEqual(snapshot(),before);const first=await cleanup(s,now);assert.equal(first.status,200);assert.equal(rows(`SELECT * FROM challenges WHERE email_hmac=(SELECT email_hmac FROM accounts WHERE account_id='${s.accountID}')`).length,0);assert.equal(rows(`SELECT * FROM sessions WHERE account_id='${s.accountID}'`).length,0);assert.equal(rows(`SELECT * FROM trial_requests WHERE account_id='${s.accountID}'`).length,0);assert.equal(rows(`SELECT COUNT(*) AS n FROM accounts WHERE account_id='${s.accountID}'`)[0].n,1);const second=await cleanup(s,now);assert.equal(second.status,200);assert.equal(second.body.deleted,0);});\n for(const protection of ['maxGrant','intent','reconciliation','hold','unknown','financial'])await test(`cleanup preserves actual histories with ${protection}`,async()=>{const s=await signedIn();const now=initial+800*86400;if(protection==='maxGrant')d1(['--command',`INSERT INTO lease_heads(activation_id,account_id,device_key_sha256,activation_revision,max_grant_permitted_until,commit_nonce) VALUES('${(100000+requestCounter).toString(16).padStart(32,'0')}','${s.accountID}','${'c'.repeat(64)}',1,${now+1},'seed');`]);else d1(['--command',`INSERT INTO retention_rows VALUES('protect-${requestCounter}','${s.accountID}','${JSON.stringify({category:protection==='financial'?'financial-ledger':protection==='unknown'?'unknown':'active-account'})}',NULL,${protection==='intent'?1:0},${protection==='reconciliation'?1:0},${protection==='hold'?1:0},'seed');`]);const before=snapshot();const r=await cleanup(s,now);assert.equal(r.status,200);assert.equal(r.body.deleted,0);assert.deepEqual(snapshot(),before);});\n await test('cleanup/audited lease refresh race cannot erase an outstanding maximum grant',async()=>{const s=await signedIn();assert.equal((await start(s)).status,200);const activationID='b'.repeat(32);d1(['--command',`INSERT INTO lease_heads(activation_id,account_id,device_key_sha256,activation_revision,commit_nonce) VALUES('${activationID}','${s.accountID}','${'c'.repeat(64)}',1,'seed');`]);const g=guard(s);const results=await Promise.all([post('s1b/issue',{credential:credential(s),guard:{...g,commitNonce:'issue-race'},activationID}),cleanup(s,initial+86400,false,{...g,commitNonce:'cleanup-race'})]);assert.ok(results.some(r=>r.status===200));if(results[0].status===200&&results[1].status===200)assert.equal(results[1].body.deleted,0);const head=rows(`SELECT * FROM lease_heads WHERE activation_id='${activationID}'`)[0];assert.ok(head);if(results[0].status===200){assert.equal(head.sequence,1);assert.equal(head.max_grant_permitted_until,initial+1209600);assert.ok(results[0].body.envelope);} });\n await test('lost issuance audit returns no bytes and rolls back sequence/max bounds',async()=>{const s=await signedIn();assert.equal((await start(s)).status,200);const activationID='c'.repeat(32);d1(['--command',`INSERT INTO lease_heads(activation_id,account_id,device_key_sha256,activation_revision,commit_nonce) VALUES('${activationID}','${s.accountID}','${'c'.repeat(64)}',1,'seed');`]);d1(['--command',\"CREATE TRIGGER s1b_fail_issue BEFORE INSERT ON account_audit WHEN NEW.action='lease-issue' BEGIN SELECT RAISE(ABORT,'synthetic audit denied'); END;\"]);try{const before=snapshot();const r=await post('s1b/issue',{credential:credential(s),guard:guard(s),activationID});assert.notEqual(r.status,200);assert.equal(r.body.envelope,undefined);assert.deepEqual(snapshot(),before);}finally{d1(['--command','DROP TRIGGER s1b_fail_issue;']);}});\n await test('refresh/release/cleanup races retain maximum historical bound and released identity',async()=>{const s=await signedIn();assert.equal((await start(s)).status,200);const activationID='d'.repeat(32);const oldMaximum=initial+1209600+100;d1(['--command',`INSERT INTO lease_heads(activation_id,account_id,device_key_sha256,activation_revision,sequence,last_grant_state,last_grant_issued_at,last_grant_permitted_until,last_grant_hard_end,max_grant_permitted_until,commit_nonce) VALUES('${activationID}','${s.accountID}','${'c'.repeat(64)}',1,7,'trial',${initial-1},${oldMaximum},${oldMaximum},${oldMaximum},'seed');`]);const g=guard(s);const results=await Promise.all([post('s1b/issue',{credential:credential(s),guard:{...g,commitNonce:'refresh-race'},activationID}),post('s1b/release',{credential:credential(s),guard:{...g,commitNonce:'release-race'},activationID}),cleanup(s,initial+86400,false,{...g,commitNonce:'cleanup3-race'})]);assert.equal(results.slice(0,2).filter(r=>r.status===200).length,1);if(results[2].status===200)assert.equal(results[2].body.deleted,0);const h=rows(`SELECT * FROM lease_heads WHERE activation_id='${activationID}'`)[0];assert.ok(h);assert.equal(h.max_grant_permitted_until,oldMaximum);if(results[1].status===200){assert.equal(h.released_at,initial);const before=snapshot();const refused=await post('s1b/issue',{credential:credential(s),guard:guard(s),activationID});if(refused.status===200){const e=JSON.parse(String(refused.body.envelope));const c=JSON.parse(Buffer.from(e.payload,'base64').toString());assert.equal(c.state,'revoked');assert.equal(c.permittedUntil,c.issuedAt);assert.equal(c.hardEnd,c.issuedAt);}else{assert.equal(refused.body.envelope,undefined);assert.deepEqual(snapshot(),before);}}});\n await test('cleanup cannot forget refresh replay history while session is retained',async()=>{const s=await signedIn();const r=await post('refresh',{sessionID:s.sessionID,refreshToken:s.refreshToken},initial+1);assert.equal(r.status,200);const before=rows(`SELECT * FROM used_refresh_tokens WHERE session_id='${s.sessionID}'`);assert.equal(before.length,1);assert.equal((await cleanup(s,initial+31*86400)).status,200);assert.deepEqual(rows(`SELECT * FROM used_refresh_tokens WHERE session_id='${s.sessionID}'`),before);assert.equal((await post('refresh',{sessionID:s.sessionID,refreshToken:s.refreshToken},initial+31*86400)).status,401);assert.equal(rows(`SELECT revoked_at FROM sessions WHERE session_id='${s.sessionID}'`)[0].revoked_at,initial+31*86400);});\n await test('audit/retry cleanup cannot make earlier S1b nonce reusable',async()=>{const s=await signedIn();const first=guard(s,'historical-nonce');assert.equal((await start(s,'first',initial,first)).status,200);const activationID='e'.repeat(32);d1(['--command',`INSERT INTO lease_heads(activation_id,account_id,device_key_sha256,activation_revision,commit_nonce) VALUES('${activationID}','${s.accountID}','${'c'.repeat(64)}',1,'seed');`]);assert.equal((await post('s1b/release',{credential:credential(s),guard:guard(s,'second-nonce'),activationID})).status,200);assert.equal((await cleanup(s,initial+800*86400)).status,200);assert.equal(rows(`SELECT COUNT(*) AS n FROM account_nonce_history WHERE account_id='${s.accountID}' AND commit_nonce='historical-nonce'`)[0].n,1);const before=snapshot();const reused=await cleanup(s,initial+800*86400,false,guard(s,'historical-nonce'));assert.equal(reused.status,409);assert.deepEqual(snapshot(),before);});\n\n await test('new adapter refuses unknown subroutes and unsupported methods',async()=>{const headers={'Connection':'close','x-fixture-key':'PAT-2643-synthetic','x-fixture-now':String(initial),'x-fixture-seed':'a'.repeat(32),'x-fixture-delivery':'capture','x-fixture-signing-seed':Buffer.from('Patched-L1-TEST-ONLY-KEY-SEED-01').toString('base64')};const before=snapshot();for(const method of ['GET','PUT','DELETE']){const r=await fetch(origin+'/__fixture/licensing/start',{method,headers});assert.equal(r.status,405);assert.deepEqual(await r.json(),{outcome:'refused'});}assert.deepEqual(snapshot(),before);});\n await test('new adapter refuses unknown subroutes',async()=>{const headers={'Connection':'close','x-fixture-key':'PAT-2643-synthetic','x-fixture-now':String(initial),'x-fixture-seed':'a'.repeat(32),'x-fixture-delivery':'capture','x-fixture-signing-seed':Buffer.from('Patched-L1-TEST-ONLY-KEY-SEED-01').toString('base64')};const before=snapshot();const unknown=await fetch(origin+'/__fixture/licensing/unknown',{method:'POST',headers,body:'{}'});assert.equal(unknown.status,404);assert.deepEqual(snapshot(),before);});\n await test('new adapter rejects duplicate-key/malformed bodies and oversized streamed bytes',async()=>{const headers={'Connection':'close','Content-Type':'application/json','x-fixture-key':'PAT-2643-synthetic','x-fixture-now':String(initial),'x-fixture-seed':'a'.repeat(32),'x-fixture-delivery':'capture','x-fixture-signing-seed':Buffer.from('Patched-L1-TEST-ONLY-KEY-SEED-01').toString('base64')};const before=snapshot();for(const body of ['{\"guard\":{},\"guard\":{}}','{\"gu\\\\u0061rd\":{},\"guard\":{}}','{','{} trailing']){const r=await fetch(origin+'/__fixture/licensing/start',{method:'POST',headers,body});assert.equal(r.status,400);assert.deepEqual(await r.json(),{outcome:'refused'});}assert.deepEqual(snapshot(),before);});\n await test('new adapter bounds streamed body without trusting length',async()=>{const headers={'Connection':'close','Content-Type':'application/json','x-fixture-key':'PAT-2643-synthetic','x-fixture-now':String(initial),'x-fixture-seed':'a'.repeat(32),'x-fixture-delivery':'capture','x-fixture-signing-seed':Buffer.from('Patched-L1-TEST-ONLY-KEY-SEED-01').toString('base64')};const before=snapshot();const bytes=new ReadableStream({start(controller){controller.enqueue(new TextEncoder().encode(' '.repeat(1024)));controller.enqueue(new TextEncoder().encode(' '.repeat(1025)));controller.close();}});const oversized=await fetch(origin+'/__fixture/licensing/start',{method:'POST',headers,body:bytes,duplex:'half'});assert.equal(oversized.status,413);assert.deepEqual(await oversized.json(),{outcome:'refused'});assert.deepEqual(snapshot(),before);});\n await test('new adapter requires canonical fixture clock, key and explicit signing seed',async()=>{const headers:Record<string,string>={'Connection':'close','Content-Type':'application/json','x-fixture-key':'PAT-2643-synthetic','x-fixture-now':String(initial),'x-fixture-seed':'a'.repeat(32),'x-fixture-delivery':'capture','x-fixture-signing-seed':Buffer.from('Patched-L1-TEST-ONLY-KEY-SEED-01').toString('base64')};const before=snapshot();for(const [name,values] of Object.entries({'x-fixture-now':['','01','-1','1.5','253402300800'],'x-fixture-key':['','productive'],'x-fixture-signing-seed':['','!!!!',Buffer.alloc(32).toString('base64')]})){for(const value of values){const changed={...headers};if(value==='')delete changed[name];else changed[name]=value;const r=await fetch(origin+'/__fixture/licensing/start',{method:'POST',headers:changed,body:'{}'});assert.equal(r.status,503);const body=await r.json() as Record<string,unknown>;assert.deepEqual(body,{outcome:'refused'});assert.equal(body.envelope,undefined);}}assert.deepEqual(snapshot(),before);});\n await test('start and issue refuse expired or changed sessions without mutation',async()=>{const s=await signedIn();const foreign=await signedIn();const activationID='f'.repeat(32);d1(['--command',`INSERT INTO lease_heads(activation_id,account_id,device_key_sha256,activation_revision,commit_nonce) VALUES('${activationID}','${s.accountID}','${'c'.repeat(64)}',1,'seed');`]);const before=snapshot();for(const route of ['start','issue'])for(const [credentialInput,now] of [[credential(s),initial+900],[{sessionID:foreign.sessionID,accessToken:s.accessToken},initial]]){const r=await post('s1b/'+route,{credential:credentialInput,guard:guard(s),...(route==='start'?{requestID:'session-bound',requestHash:'f'.repeat(64)}:{activationID})},Number(now));assert.equal(r.status,401);assert.deepEqual(r.body,{outcome:'refused'});}assert.deepEqual(snapshot(),before);});\n await test('issuance with default missing signing seed returns no bytes or writes',async()=>{const s=await signedIn();const before=snapshot();const r=await fetch(origin+'/__fixture/licensing/issue',{method:'POST',headers:{'Connection':'close','Content-Type':'application/json','x-fixture-key':'PAT-2643-synthetic','x-fixture-now':String(initial),'x-fixture-seed':'a'.repeat(32),'x-fixture-delivery':'capture'},body:JSON.stringify({credential:credential(s),guard:guard(s),activationID:'a'.repeat(32)})});assert.equal(r.status,503);assert.deepEqual(await r.json(),{outcome:'refused'});assert.deepEqual(snapshot(),before);});\n await test('missing synthetic controls always refuse',async()=>{const r=await fetch(origin+'/__fixture/licensing/start',{method:'POST',headers:{Connection:'close'},body:'{}'});assert.equal(r.status,503);});\n console.log(`S1b local emulator only; exclusive state: ${run}`);\n}finally{\n child.kill('SIGTERM');await Promise.race([once(child,'exit'),new Promise(r=>setTimeout(r,3000))]);if(child.exitCode===null)child.kill('SIGKILL');writeFileSync(resolve(run,'wrangler.log'),output);\n}\n",
+  "protectedSHA256": {
+    ".github/workflows/catalogue-ci-diagnostics.yml": "2bb7bba97306e722c6f86bf27754f3d510533cbc5b033859606a9fd17f42a031",
+    ".github/workflows/disposable-ci-diagnostics.yml": "1e4af73364c358b962a96416807dc45d3da88ec4be6fcb32a32c1a1a501572d3",
+    ".github/workflows/licensing-verify.yml": "1dc618f132ad4bc9b27d450df9395eccdd1625946d4ac1f1e5a0048ead1b7475",
+    ".github/workflows/verify.yml": "674339f1b140bf9592112c544d02338cf6c5bcadc79ea94c37a4fb70c59df644",
+    ".gitignore": "360d9cecc68fabc663fb742bb86bb57cdf63c215db68d0ea5bac9a96802359a2",
+    "AGENTS.md": "3bb069a2b215f67ae871aaf3fdd2dc3cf6f0e91fd1ae82332d21e6cd2cb5c3a6",
+    "Fixtures/Activation/README.md": "0a83e262a9a9aa688e176860eb460aa1bc43c714ed6e34c19d88f6ce69621db8",
+    "Fixtures/Activation/ci-37995438633-race-last-prepared.json": "800ad492f0138053ab1db6aab3f0bf53d023f0787cfba5d0287a1e997704e935",
+    "Fixtures/Activation/ci-37995438633-stale-first-apply.json": "a75d03f5dd93fc1eb32e1fb1ca2653fed6cc2ac3ffd5f4bf832e8e205bc25172",
+    "Fixtures/Activation/ci-refused-20261009.json": "d161a050ee1786f96bebb8b657d370c7a662ce4f1ea3592bf0f406e12395995d",
+    "Fixtures/Activation/vectors/final-slot.json": "420773bae19ac5c4c255191207631f2be476ba9528b5c089cec5f15b2284a380",
+    "Fixtures/Activation/vectors/operation-1.json": "fa5fdcc9aae6fd8581040621d55183dd6a68d436e637cbe6541e3c2c62893f95",
+    "Fixtures/Activation/vectors/operation-2.json": "a8974121032ed3f1507f6c16bc90f57d928baef50ec8055d06cc6ff47d1b3365",
+    "Fixtures/Activation/vectors/operation-3.json": "4ecd61e1e3d2c665be1856da21370f20f9a75620f32c299904fdf55346e05444",
+    "Fixtures/Activation/vectors/operation-4.json": "d7c55be351356ae9afbc776b64cf8b659d50a62f8a3a67eb9447a9621bef2f03",
+    "Fixtures/Activation/vectors/operation-5.json": "98fcb6bb48482c06a9089d8c4f7170fb6999dda96b78fa26cdaa3d3a6edc4086",
+    "Fixtures/Billing/events/README.md": "e7a9258f98ee566e2df52ca3f48701337f1b7891e59a4c2664566176e4d579c6",
+    "Fixtures/Billing/events/conflict.body": "106df49266ea89e0a6dd90a787cb8c211abdefee6675f93da2239b66f02c5fc1",
+    "Fixtures/Billing/events/conflict.canonical": "da0d96247d0125830d5feebd667db8ce49b4a7a3dd523539ece758007ab791a6",
+    "Fixtures/Billing/events/conflict.meta.json": "265e69e6a36d38357fe5cbcefae8f6169adc874c5d3ef2db6b0e4495d21eb31c",
+    "Fixtures/Billing/events/notification.body": "3e11e5f4a76096d2de290b22be55cfc5fc9ebfcca6e6f45a30fa0d1e7d6aecc8",
+    "Fixtures/Billing/events/notification.canonical": "815491c5cf260d63803b5bd9388c0640586f69fc7b55b6d97700d72393cf4b78",
+    "Fixtures/Billing/events/notification.meta.json": "d3a2d397833eb58b2ecf17a52978b8e8ee40b1b40d555c386fa85e8f11bd9b85",
+    "Fixtures/Billing/events/reordered.body": "f316e231ff32bff72d415134100cb75f8ad21496f8e429fca9db287e8bcb2893",
+    "Fixtures/Billing/events/reordered.canonical": "815491c5cf260d63803b5bd9388c0640586f69fc7b55b6d97700d72393cf4b78",
+    "Fixtures/Billing/events/reordered.meta.json": "b67f61e18b471e8503a1fcfff6713d35fec55fd5e1f70b46c4d9bf7541667607",
+    "Fixtures/Billing/events/valid.body": "5f5100ba71c9326cfbfe7db4f3c33215f8efbc4b2c07a2cb46dabe373b989520",
+    "Fixtures/Billing/events/valid.canonical": "815491c5cf260d63803b5bd9388c0640586f69fc7b55b6d97700d72393cf4b78",
+    "Fixtures/Billing/events/valid.meta.json": "775a5ca05f799a130b242b895daa731c2f8c6962cd3f426e85baf32c93c21c48",
+    "Fixtures/Billing/expected/chargeback.json": "d96ecda305e2e250e9b5539d76e27798d4c8a3ffa7e6ee6a2ff0a7f23224dbc6",
+    "Fixtures/Billing/expected/existing-gbp.json": "060b3af0f1b890490a5e5919a5267d7d1718411b21dfb9af0998e19f9ec4790c",
+    "Fixtures/Billing/expected/existing-usd.json": "0f53401e23bc14481c4c6364a4caf4113b1b51247952c34cab9b9097cf609c52",
+    "Fixtures/Billing/expected/failed-renewal.json": "17c0db18b20f943ab41a53a762ca3a142fddabe8efccfd733153bdc18d45c86e",
+    "Fixtures/Billing/expected/full-refund.json": "cf642dcf967641d0f479095cedb291dd433cf8b098174caf16ba09976894e38d",
+    "Fixtures/Billing/expected/gap.json": "7c57a7f26011cf22eb23c499d6b290042b918605aaff13bd88b72b8681b9be96",
+    "Fixtures/Billing/expected/grace-cancel-confirmed.json": "91127f866ebcdab12fc06b83312239dc03e45b7a965e8d81975c8481d2f54da6",
+    "Fixtures/Billing/expected/grace-cancel-requested.json": "c4c578d27317e02d0f2366cd4413305cb22334009d94a60c315caef9fa0cf757",
+    "Fixtures/Billing/expected/grace-held-anchor.json": "96aa7ca3c5e0dc8693f9f322b24111131cc21305ca50f025d5e8b59b201af87f",
+    "Fixtures/Billing/expected/grace-refund-exposure.json": "3c07fe7465a7dc6ef63d80159ca369835d0c5e07eb77fe40ace5ce36a6506bad",
+    "Fixtures/Billing/expected/grace-selection.json": "1ea1cda90a438b32ce530ed7ca51b62474f4f1e7f0cf2ebe0d26a8eb2f9355e8",
+    "Fixtures/Billing/expected/masked-grace-other-future.json": "03b43f4279e8c61505d2f709086e8bfc9acd4d19f64ba9fd2c70f6a3d6a87e5d",
+    "Fixtures/Billing/expected/masked-grace.json": "d6f758d8606736ccba9cb730a9806228979b3170aaaff14bd4428d3ed7dc332e",
+    "Fixtures/Billing/expected/next-charge-changed.json": "190433ca71ad97130380d8cb044d962344bc31c8c9e700e74bbaadf935212f1e",
+    "Fixtures/Billing/expected/next-charge-unavailable.json": "eb1a5885bb041250fad53d7d4647abc7b503a7d9911fe35e07340d04093dcfb4",
+    "Fixtures/Billing/expected/open-dispute.json": "da1526b193c0867ec7e740e965619978687b2605ccf8a159e0140b55017d9318",
+    "Fixtures/Billing/expected/overlapping.json": "bdc48deeddd1eed972449e7e6a7bb6020422e1999a54d2744866094e7d88ccad",
+    "Fixtures/Billing/expected/partial-refund.json": "35b226ebf64e2f172225176a2afd4399172ab8e3d2abe608098ab7e849e2c04b",
+    "Fixtures/Billing/expected/pending-refund.json": "bd89880433b09615afa5369e2abe8d5940e49f1a29e0ecb61f5c498b91ec255f",
+    "Fixtures/Billing/expected/renewal.json": "c7905f65b1696a21501de6f0e750893c5a07016bc91e2d646795328458e57740",
+    "Fixtures/Billing/expected/reversed-chargeback-expired.json": "687757a8c2e09aaeb9e1c19d407a9c85b4278c0e28608f262773d053ce554c4f",
+    "Fixtures/Billing/expected/reversed-chargeback-reviewed.json": "5f05469b9dd1bec47ac918ace4fa87bae3c7eae1cf97c4969c5857a847ae157a",
+    "Fixtures/Billing/expected/reversed-chargeback-unreviewed.json": "687757a8c2e09aaeb9e1c19d407a9c85b4278c0e28608f262773d053ce554c4f",
+    "Fixtures/Billing/expected/reversed-refund-held.json": "b91deea1fe84538cd2a596f29d89efdf83b431f04782d62ab945ecbd8ad508c6",
+    "Fixtures/Billing/expected/same-sub-overlap.json": "fb74a0554eb7bf94477cf6dba57c57e04f9d4eb09ef514c42272ad2df6d7f841",
+    "Fixtures/Billing/expected/same-sub-recovery.json": "347f8410c58d83ed5df7d67885ce21bbc6c1d7cc9b689aedb71a37e40d1814ac",
+    "Fixtures/Billing/expected/touching-future.json": "5ffbc21a7baa04fefef1cbfca9bd484e0d9db99dcac883a1851deec73f021e17",
+    "Fixtures/Billing/lifecycle-README.md": "57c24ff354170cd22ee6a071e16bea88150f73360d22ee87c8b834b8572b4398",
+    "Fixtures/Billing/lifecycle-index.json": "992d815ea0563249c130d110d1e9a6727fb506277c1a951631aa14f488c95b64",
+    "Fixtures/Billing/snapshots/chargeback.json": "134cff88d9409caee44a4de0ccaf9cb39b51bd10c40089900d791f5ee6faf688",
+    "Fixtures/Billing/snapshots/existing-gbp.json": "8d0ea4f030ee8bf61f24642180f7980492d5e237a8109cdfc7f4b4ce585551bd",
+    "Fixtures/Billing/snapshots/existing-usd.json": "da51b454c096c1409b61e83c9fc3c1c13928b16b8d6081d613551211bb46c25c",
+    "Fixtures/Billing/snapshots/failed-renewal.json": "9fc65f47f0e3d12334d93f6087f229b20d3d7aab88b2f351dc53841aad1ca5d7",
+    "Fixtures/Billing/snapshots/full-refund.json": "990e5e3b20fdc7937220d64436162bcbfcd5a853a7b0d35e4b9ee712da282bc1",
+    "Fixtures/Billing/snapshots/gap.json": "c0901cb548e321708d5c0fb91511cbc14c1ded596af2b607c0775dd3ebecf9cc",
+    "Fixtures/Billing/snapshots/grace-cancel-confirmed.json": "b3ab4446b1e4372b9181409b9a0260a8cd15a6d7248d5febc9c734e6d943f3a4",
+    "Fixtures/Billing/snapshots/grace-cancel-requested.json": "d92b4ddf10683514bd147c713d6260c09a3ad48e6c11bec8acaaab742400ac3d",
+    "Fixtures/Billing/snapshots/grace-held-anchor.json": "a54c57adf328dfdd504006f7d05b742d3ff336f7b9b829ba5bc8034adcece3d5",
+    "Fixtures/Billing/snapshots/grace-refund-exposure.json": "d00c63431a39c4c0563fac26b381a86a9a6b93804e59de91761de490694bfeed",
+    "Fixtures/Billing/snapshots/grace-selection.json": "90a74eeca3e43992985042720f2c2ebf4d61ad066b55459c6ee1014723f34f03",
+    "Fixtures/Billing/snapshots/masked-grace-other-future.json": "fd0fc57f546a3ffedd079980a9236a8dc5c199c6082ccb99690c2f7767e63e46",
+    "Fixtures/Billing/snapshots/masked-grace.json": "aee5c1cd71e5aba0d021b04a794e1993ddebbe820fed1902389996c6c3d7c841",
+    "Fixtures/Billing/snapshots/next-charge-changed.json": "6bd028391f6b9752d2f226f04fbdbe8b020122b83aa3c9d4d02e40ca74c015fd",
+    "Fixtures/Billing/snapshots/next-charge-unavailable.json": "02b96ea29a2893c634820e99122ac26f3604c2c2f899713e30e702def81ef5a8",
+    "Fixtures/Billing/snapshots/open-dispute.json": "73b2e1680750c9a932c61dbfc1ba7c3f6c7d8b0bdd2bc12bede414d0a910b62f",
+    "Fixtures/Billing/snapshots/overlapping.json": "c0d53acea5e5a99251638f7e8c55ae8bff5b059db6da3182444cbc3d0099c4c3",
+    "Fixtures/Billing/snapshots/partial-refund.json": "5d7e88f1bd38da8d0b6f6c1e7af8bd5a116ac749cf66ef09d505b5e973430c97",
+    "Fixtures/Billing/snapshots/pending-refund.json": "ed7f8a9e75346e8047394aff71556448a9a44b5dc5a02676b5b265f8f0dbb1c6",
+    "Fixtures/Billing/snapshots/renewal.json": "0ce27b96d56927e726f2733df8fbc86f3b7a286131f83742dea1e1a8bfbba573",
+    "Fixtures/Billing/snapshots/reversed-chargeback-expired.json": "366b69a5abbfc93830bb03413ba5b1c5ce78075990e310083437cff5f5b1966b",
+    "Fixtures/Billing/snapshots/reversed-chargeback-reviewed.json": "938a5411deab79a573d11f7085da5a0328ebc360e27f1a74576d795ed85b5af8",
+    "Fixtures/Billing/snapshots/reversed-chargeback-unreviewed.json": "8f5f45de605e133a7f05d372956c26565ae068b6a8163d691b674c8a1b9b1ba2",
+    "Fixtures/Billing/snapshots/reversed-refund-held.json": "0f8ab26a0ead9b129f62479beaed47038431fd73eb1774a10d80e61b3560542c",
+    "Fixtures/Billing/snapshots/same-sub-overlap.json": "69e533219ea1df71210e56bbdaaa62100e51595901cfa24ee7e41045c6b6be55",
+    "Fixtures/Billing/snapshots/same-sub-recovery.json": "89d927feb7e986f88007c9f503439de90666901d2b162fae55ffb12bfc76d378",
+    "Fixtures/Billing/snapshots/touching-future.json": "e498f43fc091fda9a4e5d25d922e1a1c024edfdcff5086265e075c0595f6122c",
+    "Fixtures/Billing/summary-vectors.json": "d1d8ccab22fb8fe3da4be8f54bb1f9b0ce5b1405231c3f109a514e22ea908a74",
+    "Fixtures/Catalogue/README.md": "8a988f035c36842afb02a703dda4326014d4ecccb9ad528c71941399d54c4a1a",
+    "Fixtures/DisposableProof/README.md": "6267785d1925aee42b76b9b9accb6c4b8acc8b98faec62c9e3bcd2d6d94dda96",
+    "Fixtures/Helper/README.md": "0b11aba56c2f6e784337806da394e13af2a5de708da51a01b393bff65987a570",
+    "Fixtures/Helper/policy-vectors.json": "e6ffa0bec2f9bd89eb0d51709eecc0d6e083575563101a94ee00ddc93105d3b6",
+    "Fixtures/InstallomatorDiscovery/README.md": "2ebee9d6460c29a8007b6564737c7fc90e8032cbc8fa511baa17ccddbe95743b",
+    "Fixtures/InstallomatorDiscovery/approved-route-policy.json": "c3e1e294a0a2d1b1754ca2a7590e01b082a879d1f4f4ceeba73d9efe2c5580dc",
+    "Fixtures/InstallomatorDiscovery/attempt-history.json": "ffd1c796e3be13cb8b4fb26a0d8effe80b3da7787abaa6b028bec681e8d6c921",
+    "Fixtures/InstallomatorDiscovery/expected-events.json": "4d5aa7fa9db77b9d3cbb63a804c6dc1d21c8f769f2707ba636eb5d6a7310346f",
+    "Fixtures/InstallomatorDiscovery/labels/dynamic-held.sh": "1f7a1d2dc384f76e6e3e2c5c2c715953ca9725feec613ff2437d7ad3bbcfb10a",
+    "Fixtures/InstallomatorDiscovery/labels/literal-valid.sh": "8cb8785af93bf9e8a7f6788eca93495ac655a1eb47401ec945573b9c4ea00808",
+    "Fixtures/InstallomatorDiscovery/labels/malformed-held.sh": "637db7852c65cbfc6b67ecf3d3632c5dee525f09b627d48fcfa451d857102b00",
+    "Fixtures/InstallomatorDiscovery/snapshot-manifest.json": "85b035049a2fcb35dc10b77e13f63b858fb0bbab8d38a1b34128a5666e5fe973",
+    "Fixtures/LicenceSupport/README.md": "5553e9c2dabb5369719a39713f58e63ee1482eaf98120e1638107584ee86c444",
+    "Fixtures/LicenceSupport/vectors/changeAccountEmail.json": "ec78ad8dd4e9d0b796e7f1a6e4fede3641a2cb89940bfa772a06bda1a3d74ba5",
+    "Fixtures/LicenceSupport/vectors/deactivateActivation.json": "c4abe719abe029cfb16187b2c2a0f03616cde815f26b2d612a06625167a28026",
+    "Fixtures/LicenceSupport/vectors/initiateCancellation.json": "44f1a31e35adaf4967d9cbcb26b2e0d9c9e79f28a73ecad9ee21f2dd9a2b1264",
+    "Fixtures/LicenceSupport/vectors/initiateRefund.json": "37558e8c00ff9864175d5060effc0a404c77dc202de75cd33a22e518ffe0be79",
+    "Fixtures/LicenceSupport/vectors/reconcileProviderState.json": "9cf310dab1a9fe1debaae9eaef897e7dc507314fc5ac1a3754d74f0767867996",
+    "Fixtures/LicenceSupport/vectors/recovery-case.json": "56f0d50d95169439af0a7ffe3e2001463a95aa7ce44a0e8f56dc1b28ee9ad3de",
+    "Fixtures/LicenceSupport/vectors/resendSignInCode.json": "9e0eed2f7d1c51ad7372540d05e298ca41d8806bc14e59685f0dc75e2e185978",
+    "Fixtures/Licensing/README.md": "482a8fcbc6f9294d27f2b6a5c75eb44e12fc65133a126b33e538f2154258a802",
+    "Fixtures/Licensing/vectors/duplicate-escaped-key.json": "5b8aeb0a7b3c0bbe737a844035eeaa88bb6a21e196bd0de3d37edcda8707556f",
+    "Fixtures/Licensing/vectors/valid-beta.json": "467bf62f3045d2498d48908f41bc35fccdfc6fbaee6e810262f4701680df3e5d",
+    "Fixtures/Licensing/vectors/valid-expired.json": "162c2862f3d87abc03a68191bae9da8877af93830c138fb68c7a9c0d16f64872",
+    "Fixtures/Licensing/vectors/valid-grace.json": "161c642fa61b77d827af82d3da4fcc63caa9f51008a8345742379fd4f8752528",
+    "Fixtures/Licensing/vectors/valid-none.json": "ba2acb4017cc03ab76452e8d5f868eeb09ce5daa8b0eb4c22d97ddc3d9c2d2d8",
+    "Fixtures/Licensing/vectors/valid-paid.json": "0f0d7ee8218351c428bfb489ca6c3e755812e822d261de09d48cf427dda8923c",
+    "Fixtures/Licensing/vectors/valid-revoked.json": "568fe40fa32af70458c36b51f9755e568b295b063a47ca4a8c952bb04b8971b2",
+    "Fixtures/Licensing/vectors/valid-trial.json": "63b1228e7e4c0d28fe7768bea12ca8a687dc4aac90a1a3984c0616d317ff3b94",
+    "Fixtures/Licensing/vectors/wrong-account.json": "80fce9d6a421230293c6dda773093a75e5063b7ee3a185807836ebfd2510c008",
+    "Fixtures/Licensing/vectors/wrong-activation.json": "89e46aeda026b851615ed962ede9a3da9d9ebd4900ab03e6ce1313356f878e7b",
+    "Fixtures/Licensing/vectors/wrong-device-key.json": "d10ebbf53114ee55cd08abfa25ef763754f7383537be3918ddf85ceed45ff221",
+    "Fixtures/Licensing/vectors/wrong-domain.json": "a925b968b4b5c7711ffc68ec2a6fc6a0e40683ba2a760e9d61493259e6493a68",
+    "Package.swift": "8e309b1474a2b20608154e3f293c44a1946c85fe7e9e57321b2933b9286b8699",
+    "README.md": "36b7eac2b217fcc43ad6c647aae37a2a80b46e8b01fa9e8f9f6da5033d35bbed",
+    "References/Legacy/firefox.recipe.json": "48bccbeb784a98729df47c04e36a14c343869ae0c7db609a6ab5d3765226281e",
+    "Sources/ArtifactInspection/ArtifactInspection.swift": "7afa0cf3a02af4c85dae31f209197d745cc0559f80a7eb783e596f29e6c68e04",
+    "Sources/ArtifactInspection/CommandRunner.swift": "816fe09acc453a5df9eea376dd4ba01bb7878074ba83c03c14c5b928aebfec45",
+    "Sources/ArtifactInspection/Download.swift": "627c6e29bfc461bb414f39a175b4d252c30c5b0d71327de9e270e9cf5699b0aa",
+    "Sources/ArtifactInspection/Inspector.swift": "79abd8a6fcb30e11ab4a51871903c27ec825d43ab52460def5e507af117c0417",
+    "Sources/ArtifactInspection/Mount.swift": "81207f97d12c3ac84d9e7c84955d254845a4fb176723fa2c8bca2e9bcb281f44",
+    "Sources/ArtifactInspection/Records.swift": "269adc8fcc716951a0c178067d79c7277a025522b8a6292ea89b85bdca80d3ee",
+    "Sources/ArtifactInspection/SafeFiles.swift": "b71177169259401b4ad6e05554ceb394ae009d3e40b8f85b335340a33f7e6c44",
+    "Sources/ArtifactInspection/TrustEvidence.swift": "d4d610a5675aabd988547d3bd3dd1831f7ed739be9db4b08b2fecb57972e0294",
+    "Sources/ArtifactInspectionCommand/main.swift": "84b7e55973e07a1159416d7322a2ab10e7a76f49fb09400af1bd7a48d3c6fd2d",
+    "Sources/PatchedActivation/ActivationIdentity.swift": "543c966cd4d873e5f7c29b58ca8e289a24cadead3ba7a2e314f6405effd087bf",
+    "Sources/PatchedActivation/ActivationKeyProviding.swift": "7567cac9374a2f25e587e7d4a67b9ebf3a9c5cc79d8b541fd9df64b96ff9fd66",
+    "Sources/PatchedActivation/AttestationBinding.swift": "1313eb63bfafc24975f02cd1cd23c0d5e0d8deb901c2b23696b5ae2fdc46c3d5",
+    "Sources/PatchedActivation/DeviceRequest.swift": "da9033cbdb25e47961c45f250c2f3dcc5107363cba272e5fac1b3c2fe75705ca",
+    "Sources/PatchedActivation/ManageMacsPresentation.swift": "51320c8e08c431b5761ddfbf0a71219feaea0e5ec0655a3f8bae01f767d2b28a",
+    "Sources/PatchedActivation/P256SignatureVerification.swift": "167c047866d53633f8419823c2458467492b8887c9d0a410abad1286b81851d4",
+    "Sources/PatchedActivation/PossessionProof.swift": "55e8131eacf945352783c223f6de039376fea4d879e763ac3cc33dedd41a8039",
+    "Sources/PatchedActivation/SlotLedger.swift": "92a83a0fbe4318402eb61395101ce398dff6fb95b969b86446f1b8bfd9bdbbd2",
+    "Sources/PatchedApp/PatchedApp.swift": "b632786a8a6068cf3f00540035b990e222b2c323054790522cab3f08f9ab56c7",
+    "Sources/PatchedClient/ClientController.swift": "938e9519b604e176c1e3bdfc1d136c60d56a2f586703e68a19be03cf33d80373",
+    "Sources/PatchedClient/ClientView.swift": "706e202f073163b29d1ae1eb80a2f540aa09802224fb7ae762dd9a4512bee921",
+    "Sources/PatchedCore/ArtifactVerifier.swift": "b8954d43a0f473a7774870984c685600b4171a457c183299d6d349ac544f9e8e",
+    "Sources/PatchedCore/BundleTree.swift": "5efc528fcd6a447a923181214a35256d3cdf8bb929aa87bb34420b23b7f61144",
+    "Sources/PatchedCore/CatalogueVerifier.swift": "86a195b79421f4e0e0ad92aea535044790b6384b768da71324f690cfbd0bfe5f",
+    "Sources/PatchedCore/FixtureIO.swift": "6b0e8d34127dfd679f1ea2584494e6e7dfe1ca48d8b0ea09da6ae88a6d5b6740",
+    "Sources/PatchedCore/FixtureRoot.swift": "a74bc8439a92e06ca7badd8813cd50d4eec35aa304a3a3bdddbebd6ed0729a68",
+    "Sources/PatchedCore/FixtureTransaction.swift": "559e998894e6d1b897a88b6a7514fdda7a9d38dc16f41b99cdcd5deb94832e0b",
+    "Sources/PatchedCore/ProofState.swift": "c646dfc3c62bc166a450153a1f3aa9e52d3263c2d3bc15fd2ae88e3b6681199c",
+    "Sources/PatchedCore/StrictJSON.swift": "65e8530a214c8e37e34636aaded9be624c46dd686156ba6148af5bd9c66457ee",
+    "Sources/PatchedCore/TransactionJournal.swift": "89c7b2e7014e3f5351bfc63e5ab840980c03d4576ddc66647862f5dee463d015",
+    "Sources/PatchedCore/UpdatePresentation.swift": "00b63271dd7cf68d07465f1f78b97215072ffa43a19d852501e0a7849dd22cbe",
+    "Sources/PatchedCore/UpdateTransaction.swift": "41e0dc0ce04192570d9ed63298abb2b200627676034fe38b7bc3d9d8f9b6eeb9",
+    "Sources/PatchedCoreCommand/main.swift": "552532d518775925b8d06ef745c00e82e577e1177147cb81c182ffc9fc16ce04",
+    "Sources/PatchedDisposableClient/InstalledActionController.swift": "dcdb4fe26c60056474276510de8e313de624275815f4ab70ea4e39a039521192",
+    "Sources/PatchedDisposableClient/NativeInstalledActionGateway.swift": "c1083ed491d8abf66493133ece9a45d133ef8d50d2ab7e849b3943b279dce384",
+    "Sources/PatchedDisposableClient/NativeProofWindow.swift": "ac0237e150a95566a6166c6c2e371d4fb1068180b82d6c7b3e2a48aabb71cb9d",
+    "Sources/PatchedDisposableClientApp/main.swift": "deaf6c59ccb60ab2e724df78d6410bd9ae91e5807d1cd2b9daa2e7127442e986",
+    "Sources/PatchedDisposableProof/BundleManifest.swift": "23ee41116ee5a7a79645debfe0521238bdf9891f70db0a1789364e2691429770",
+    "Sources/PatchedDisposableProof/CatalogueBoundary.swift": "dbe5183412b8e3b995c0f3f0f011f2cb271e454cb5580828c7b2397683deac89",
+    "Sources/PatchedDisposableProof/Contract.swift": "c4d689f9006656f9cb25d592ed18522382b26ac9f0d3d7fabcc2e8ab222dc3e0",
+    "Sources/PatchedDisposableProof/GuestCases.swift": "8e9e6ee16bae83b0b941f081fd6f712e28dc8b33d5524bfd92edcda9196acbed",
+    "Sources/PatchedDisposableProof/GuestRuntime.swift": "2cbb2be9da055f4c53c33ba58e625bd112d9bf6046fc3876237ed1fdcacce6c9",
+    "Sources/PatchedDisposableProof/InstalledActionScope.swift": "94fbd73b46413ea48c98210475c923a8e0639524c78d44f12492afb2db6dffce",
+    "Sources/PatchedDisposableProof/InstalledChildProcess.swift": "b827c3908b321ad8b348c637b4d2bac97610f90e61399f5b911106a8949ee507",
+    "Sources/PatchedDisposableProof/InstalledGatewayInspection.swift": "ee3d710810b914e8cfc532f46a332d8392a1540fc0127c0d02f68306b0e2a5b3",
+    "Sources/PatchedDisposableProof/Journal.swift": "2eee8d23b062ffec784f6f1781b1ce15bd93fd56c4c029059204012e33ca9b4b",
+    "Sources/PatchedDisposableProof/Mechanics.swift": "66879332dc1c9d383bf82ea2ca319eac041226d6cb107c8670204e535c315f1b",
+    "Sources/PatchedDisposableProof/NativeInstalledBindings.swift": "92c795a1411d0f5dffcf008e5be162a9ca864e15ccaaa30e604a7a5e6d727de8",
+    "Sources/PatchedDisposableProof/NativeObservation.swift": "4f285fb39b80bfce36339eef57d4e189cef35f52fd63a738525ee707c2227eb4",
+    "Sources/PatchedDisposableProof/NativeStorage.swift": "9ff752c1e4f680c2f45785a693a207cbbb91151962f8dadb438fe7ea943d693c",
+    "Sources/PatchedDisposableProof/PhysicalFiles.swift": "ec77b10077b70baaa7c3174df2ca63858c674adc68ee8abb8275aefe2e58c523",
+    "Sources/PatchedDisposableProof/ProcessObservationFailure.swift": "4666328e36b20609344e44186aae84eeb2774e1a3754915232b84e1a6409a6c8",
+    "Sources/PatchedDisposableProof/ProcessOwnership.swift": "79747df39fa26372ad98affb116f38b2340e27434d4d2ccf2b0d1cc4d29281cc",
+    "Sources/PatchedDisposableProof/SyntheticMechanics.swift": "316118702e1f2a6928aa70af4d2e5dc04e7ffc7b21c52950e1ca7847a2e1c0c0",
+    "Sources/PatchedLicenceSupport/RecoveryCase.swift": "8a82e2a4563941e42f47197d4db124bebae2f5d06568f4113ce562a134f902ca",
+    "Sources/PatchedLicenceSupport/SupportAction.swift": "190b79cda2e0a9e0abf0428f6627e53651079e744586003c660b4afc7a98e107",
+    "Sources/PatchedLicenceSupport/SupportClient.swift": "0882b0bfb8d8e5ae91668c51fb7611f9bd9e4470ab64d91756d14356a9d2e513",
+    "Sources/PatchedLicenceSupport/SupportConfirmation.swift": "ba787ced83ddfe96e23ef4bceeb73efd4e6fa8276b2393f02a73241d591ce305",
+    "Sources/PatchedLicenceSupport/SupportPresentation.swift": "f8a75d65a51283141841955dcd73a1a77b1f981c707e9bb02d82957388c53ad1",
+    "Sources/PatchedLicenceSupport/SupportTarget.swift": "473d392f0c04fdc73f8376f2d4b0606c176057ee8a1bb7a9a32bbd517d95e234",
+    "Sources/PatchedLicenceSupportUI/LicenceSupportController.swift": "38a613a711bbd6442e77abf6f499d5da278b4cd69b42e7b8527924d40fbf95f5",
+    "Sources/PatchedLicenceSupportUI/LicenceSupportView.swift": "c67895c1772baee9a5dac32775f5e407b015a759554639251c2f5ff017b47314",
+    "Sources/PatchedLicenceSupportUI/LicenceSupportViewText.swift": "3411414656c7950302131cd291729827f38042c9df534b62d0981363a2bf46df",
+    "Sources/PatchedLicensing/Entitlement.swift": "6599d8a7d7272a3b37d9437a178de1ee94042f573aad7764c1d19f663624e068",
+    "Sources/PatchedLicensing/LicenceCache.swift": "f1943ab21af96ff7a2f97d83a19069aca071b7d9c291f28fda27f6447237fd31",
+    "Sources/PatchedLicensing/LicenceClient.swift": "ce6b2586e23f2739f3700aa7fd6ed190cc733e057890ebd61d9a6f710d152866",
+    "Sources/PatchedLicensing/LicenceClock.swift": "c0fef80845625726451bea43add48ff39c4f31a4eb765e09dce4db7287459d96",
+    "Sources/PatchedLicensing/LicenceGate.swift": "3b310c698a64eff5528fff994168b5a84b7eb050a6e1509c646327056d732714",
+    "Sources/PatchedLicensing/LicencePolicy.swift": "b9a393e9f4de370df34789460e0a6f5282f5f24094d26d3e5584c4d1abf45686",
+    "Sources/PatchedLicensing/LicencePresentation.swift": "9453606226fe7fc2d8ebc692887b21f90958a094bd1b7510772665226dda851a",
+    "Sources/PatchedLicensing/LicenceStrictJSON.swift": "1f36a26f5a2ed0cd58c489bb8a3805d230b4ac0f2082813085212562faa43505",
+    "Sources/PatchedLicensing/LicenceTransport.swift": "c7c788c8ba498f3634c27440c2604a31798b55a2ee363ef01c2dbbaa77de1722",
+    "Sources/PatchedLicensing/SessionStore.swift": "b901be7c8044b153684412827ec2eb6df59ea4651da8f4f12128305ac85f2fb2",
+    "Sources/PatchedLicensing/SignedLease.swift": "43a14785184d1e9ffd573c3b27e2fa379b83cf991f8c250d85436997ace4a0be",
+    "Sources/PatchedLicensing/SubscriptionSummary.swift": "c9c0f68368aa241f1f845d1002442cb68a22dda22ba2eb91c457977a599f1df8",
+    "Sources/PatchedOperator/ArtifactInspection.swift": "d784cb10bb4190631e1218e94c89a9519ae7e445663caf32e73aaf32482f1cc0",
+    "Sources/PatchedOperator/CataloguePublication.swift": "d1d3da6c2d51ebc7fd86785e5617c59c0fd341997d4bcc2a211d6b20be168012",
+    "Sources/PatchedOperator/CataloguePublisher.swift": "4f4e9a20d2caf720a27651b21eba7759235b8ac217e2965c3443614e1d4ea248",
+    "Sources/PatchedOperator/CatalogueSigning.swift": "3db34f1a2d2e6ac5fd321ee90aa44cf9d4a831f7111e1aaea90d4428556702d1",
+    "Sources/PatchedOperator/OperatorController.swift": "44b19bb3536b664f587704fdf1dfa35d3ffb4387d9a35a3ca8c7026223c8b8eb",
+    "Sources/PatchedOperator/OperatorIO.swift": "4ab0c706478f65a21a320d73248dd9cc03f21059a6a390b2e222b343f1cd66cf",
+    "Sources/PatchedOperator/OperatorRoot.swift": "ffe6deb502e4b9d4314878d241c5cd7d88f7b26e643e49f15184b1388c205cb2",
+    "Sources/PatchedOperator/OperatorSession.swift": "81f069c28aeaade605b1e908db11cb7a796d48af7e62e6b2367f84a54bf5d587",
+    "Sources/PatchedOperator/OperatorSessionView.swift": "4ffcc57a562e16681f07cece868cafb24d790cb0eed4a422220eaeabf378da5a",
+    "Sources/PatchedOperator/OperatorStrictJSON.swift": "2fe222996b8b311cfe0f2b8dc692fed1b1887dc3971ab19fbcb02fd1f33956e2",
+    "Sources/PatchedOperator/OperatorView.swift": "642e35c83d322e3c76f4954ed67f8b8219423cd81025306ca42c6e69fd552cab",
+    "Sources/PatchedOperatorApp/PatchedOperatorApp.swift": "2378bdded8773ecd8b364ce751df4d8a12fe31ad806398072f78a84c542b31f1",
+    "Sources/PatchedProof/main.swift": "d31e1af643940b5c02015ec5f14aa776cc03c4d2d05bbe595a373376bc01da71",
+    "Sources/PatchedScheduling/Clock.swift": "6ae6abcb7ff895de835ab6e8865cbdf68d5c0f23edbda4f58ea0e6c697cd6792",
+    "Sources/PatchedScheduling/QueueModel.swift": "ce7b514d6e61daaa3d69aac81d6bc3f1b36969b5b21a1e8268ae58c4cbd596a8",
+    "Sources/PatchedScheduling/SchedulePolicy.swift": "749d19d3716589b15a977e233cc6733aba9892f9818d4f47bfe655a3cf017612",
+    "Sources/PatchedUI/LicenceView.swift": "4e13f0e15d9b3fbedda19f59b4298a016e9f2df4168c75608ca1911dcd583543",
+    "Sources/PatchedUI/LicenceViewText.swift": "5c6a14b736d64d4a54708e2b7385537825926d676e6073bd29a957519625d97a",
+    "Sources/PatchedUI/ManageMacsText.swift": "9f63c9bf37f5aae82e707bdd07481e289950dd61643c9cfae43c0d7cb62f8c35",
+    "Sources/PatchedUI/ManageMacsView.swift": "fa5859a90c2b669c4c0a2e1dc36afa2b8b2a742533c6aba789a13d41b3878621",
+    "Sources/PatchedUI/UpdateView.swift": "4f682bf8d1e9ce1f6e635a14de245dca2cc8f8db63060659399c47c95e705aff",
+    "Sources/PatchedUI/UpdateViewText.swift": "5bf9821b6ace4c096a8f9795ca84dfc706da7ec40b832d308336a1ffd4ff4427",
+    "Sources/ReferenceVerification/ReferenceVerifier.swift": "03b26f910eb13bcb4c19a4cc6c1a48cdad89a48e2b0d3d2787a353510d220a23",
+    "Tests/ArtifactInspectionChecks/EncodingChecks.swift": "c1cc30a4ea82aedd35bc30f677853306ceaa5258a7dc0b50bcc81eb76b1f8142",
+    "Tests/ArtifactInspectionChecks/SpawnFailureChecks.swift": "21fb0701aa26b4da44565e89b3802bc93de4b24f3292fe56e4998fae999c4c11",
+    "Tests/ArtifactInspectionChecks/Strengthening.swift": "7401933f3a3e172ac550297e96c7436597eca898ccce6cc91b1e0549bbbda466",
+    "Tests/ArtifactInspectionChecks/main.swift": "ee649465057ac6ca79039ef1636ea178b4fd8faaad0e0ddf3f97b3221c113fdc",
+    "Tests/CatalogueCIDiagnostics/observer.test.mjs": "9e037623561d77dc02aca558c6554914918f59077b2f18d49d230f8cd13e42b8",
+    "Tests/PatchedActivationChecks/BidirectionalProofChecks.swift": "b56d1f246f2ee5cd6d149dfef6587de74ec537c8ba068bc00d5e2c227461fd2f",
+    "Tests/PatchedActivationChecks/DiagnosticChecks.swift": "2b5b22cb099fd64b96a33f0d624badce3ce1eacaf8b975e90e89ff54f23be6ec",
+    "Tests/PatchedActivationChecks/DiagnosticSafetyChecks.swift": "6243ace6a15577fbfbc8c2c7196cc2f7a5c937a160c25cf4a966820d34b02216",
+    "Tests/PatchedActivationChecks/FixedProofReplay.swift": "8bc1ffceb09e7add8797bd53c3b2a5d877088d7fff347746d185d5373a5d02e3",
+    "Tests/PatchedActivationChecks/FixedProofReplayChecks.swift": "7484b56a44151ab72a03b0240008ee2a91be6eba36df3c8962fbd13a7a15ebe0",
+    "Tests/PatchedActivationChecks/FixtureDiagnostics.swift": "89ab477e7547ed6bc0938a94d35c237893ee04057b52ead5522e5d4706fe682f",
+    "Tests/PatchedActivationChecks/HardeningChecks.swift": "cd58cdc9d853df9bfea51d335d93cb2470141ab7d83a91597bc3531eae0614b9",
+    "Tests/PatchedActivationChecks/IdentityChecks.swift": "1be61452df8819bf9d8f4230c21f4a6211b5940d81492ff970e1aeac348dcbdc",
+    "Tests/PatchedActivationChecks/LedgerChecks.swift": "8fb0a7f6a81863e4fa4094fbd910a50079d5fe742378b65c25222abd50095ad6",
+    "Tests/PatchedActivationChecks/LedgerFixtures.swift": "b5467b03ca591757c4243d6ada34ac2218e68a920f32ac0a1d5d2637a61d03b8",
+    "Tests/PatchedActivationChecks/P256CompatibilityChecks.swift": "18c203d59631edac6674c2feff35dc84ce6b33d4b9937aab972d110fe89fd932",
+    "Tests/PatchedActivationChecks/RaceChecks.swift": "fe03a035c7ec103338e4ce1319343d03de2d4666ccc8f894bcf1ef391d584344",
+    "Tests/PatchedActivationChecks/RecoveryChecks.swift": "913a54f796a407ba65a729f750cd6594bf6ca82380b3dcd7895c830ce49f8e7d",
+    "Tests/PatchedActivationChecks/ReferenceProducer.swift": "b88c32d92d33ce0d2236347bcbba67ea6e79e6f2bc9565d45b51acd6ca0842ac",
+    "Tests/PatchedActivationChecks/WireChecks.swift": "0b23a3d85c8a967fc2f5368cd09a00d7fa9e4a4ba2d0cddb315259c3ae90fc79",
+    "Tests/PatchedActivationChecks/main.swift": "db8e721ef0820f32cd081bf601bcc8fedd90ab7460616f996ae2abdc3a2d23ec",
+    "Tests/PatchedClientChecks/main.swift": "4c3a240e5b9124f3750539b6e088482b44ba6f3d802eff274ec3c6460a2a11c5",
+    "Tests/PatchedCoreChecks/ArtifactChecks.swift": "d163c66216619cc00b7a156ac28142c722d4b5c81c313431bdc87753e2bbee9d",
+    "Tests/PatchedCoreChecks/CatalogueChecks.swift": "82799522307be5025c6225668fbf5e68197bdb2d053aa9a1a13018ad561c2faa",
+    "Tests/PatchedCoreChecks/Fixtures.swift": "bb1b5b0f8c90057b81f65f36af9ecd6a642f55b4a1e1f90617c10b6dea037762",
+    "Tests/PatchedCoreChecks/StateChecks.swift": "24dc567a1dc00a084913c452020dc34f431f370885a86534f061c8afd3a01eff",
+    "Tests/PatchedCoreChecks/main.swift": "4d86b914a4d1c89b677f1d224397901069c34b74a41b8252610d15a34f06ee5f",
+    "Tests/PatchedCoreRegressionChecks/main.swift": "5b1b829d3611d038594c1371c45d2170d6a69ed09446785cde1a479dfcc90b0b",
+    "Tests/PatchedDisposableBoundaryChecks/OwnedImageSealChecks.swift": "d4fb885d35b319de58bd2041cb341684a6320bacabe6a397cd3bdb3c68fc7a2a",
+    "Tests/PatchedDisposableBoundaryChecks/main.swift": "a485273b49eec83d435d04cc3b4620c545d13c59841471c19bda25b8e81213b5",
+    "Tests/PatchedDisposableClientChecks/InstalledActionChecks.swift": "4be76283796c1664c9dfc9c35ebec6bbc92427cec5a11498449c79c0cd6f021f",
+    "Tests/PatchedDisposableClientChecks/main.swift": "b83ddf7dd43bc9998d6a1de674fbc9fca5ad4133387872323bb960669949b768",
+    "Tests/PatchedDisposableGatewayChecks/main.swift": "c0f42033a960301e46b1d93f9097e1169872c05185ea2480fb90cb4739a9eb8a",
+    "Tests/PatchedDisposableNativeUIChecks/NativeUIChecks.swift": "22fb23ea0ad564bd8b2944bf6ce471915cce2d3e476a01526ebf82fbc9ba5669",
+    "Tests/PatchedDisposableProcessChecks/main.swift": "e47fcf4fae43e4d66d7a1b4295877a393b0b453d35b95551eb71ed7702e31767",
+    "Tests/PatchedDisposableProofChecks/CatalogueFixtures.swift": "c362ec289f0f8ee9dc3d72c613a3f29cc98e8d853d458617866398f2cfdbb626",
+    "Tests/PatchedDisposableProofChecks/FilesystemChecks.swift": "88d06a7212a8e89e7c0f10df4c6a4603f2135b6a3acb85764c7066eae4525341",
+    "Tests/PatchedDisposableProofChecks/JournalCatalogueChecks.swift": "60efb117b80c6920abf886f9164b357d7868303cb6a8f7ece3482aa7d40981b5",
+    "Tests/PatchedDisposableProofChecks/ParallelsTargetChecks.swift": "ae9f8e4f34b14f81d0179b47e977c450053b0d2539b987d47505dc248ce45085",
+    "Tests/PatchedDisposableProofChecks/ProcessObservationChecks.swift": "9e1118131bd81bbc62afcffb1b13b8390f9361a09be925dc366c977b40d38be1",
+    "Tests/PatchedDisposableProofChecks/ProcessOwnershipChecks.swift": "4a297822bed207d4baa8edfb4a38467233f2fe3a7f7aeb5739263397eb2c8dd1",
+    "Tests/PatchedDisposableProofChecks/Support.swift": "c413e62e6263582d8565abebc528819361c1903f0f2f6f4d56c849415249d922",
+    "Tests/PatchedDisposableProofChecks/main.swift": "e0df97c5cf2897e21dc439ae14ab2f2128b4c73aa5c81af7c4777c3d1ad4a18a",
+    "Tests/PatchedLicenceSupportChecks/ContextChecks.swift": "6e259e27973672fd9d4d231baaada657d208ff4413ea60b15c96b20f7b2b6c33",
+    "Tests/PatchedLicenceSupportChecks/DescriptorChecks.swift": "62c9c82c28c7b6e760afb98fd4b43df65611c237872637fa1acc296fd90cc620",
+    "Tests/PatchedLicenceSupportChecks/Fixtures.swift": "24fcb55ef88d19ccdcd896928410f7b79ad8682e3299d992498122a21f213c84",
+    "Tests/PatchedLicenceSupportChecks/HardeningChecks.swift": "592ca4dc2d9f1e5bbe258ed4d22bc1de4427c30779ae69aedaf784f48cc9d068",
+    "Tests/PatchedLicenceSupportChecks/RecoveryChecks.swift": "cbf76c82989fbc635b8dca4d529fdf8bb823ee564bfd70cc0a88ba2a5510b54e",
+    "Tests/PatchedLicenceSupportChecks/TransactionChecks.swift": "b2c9101f786ee421ce0f07bf4a865b28e04dab806ea41b821504573d87a4faad",
+    "Tests/PatchedLicenceSupportChecks/main.swift": "6a66dc73821ccb0c6bf0f14d9c4b7cf013d3fe2b2fe174e337a48ea94a2f3f20",
+    "Tests/PatchedLicenceSupportUIChecks/Fixtures.swift": "818d3607fce1f04143f05fc83c3efe54a997e0f4a33621ba079680d2afe87caf",
+    "Tests/PatchedLicenceSupportUIChecks/main.swift": "ceca946f4f867dcc8ca4557a948bcf877dd141d8d8b7d7fcb528b7cbf8c59d20",
+    "Tests/PatchedLicenceUIChecks/main.swift": "5bf174e5063a76133a45833b0c4b8d3abce99364f3999184793445e4f5109510",
+    "Tests/PatchedLicensingChecks/ClientChecks.swift": "6d6a9815ea7f4c2ec4c8158537bb220bdc8ac56f262f058948f5e970c8b5e45d",
+    "Tests/PatchedLicensingChecks/ClockChecks.swift": "787999a078d56a3d8f4e9f2edcd57f3510e17b15dd190e0487d50b724ab1f66f",
+    "Tests/PatchedLicensingChecks/Fixtures.swift": "7cf94c0064314ecd2659cf00d012cb577f0cac01b83d9e7e573455b9ab93fea4",
+    "Tests/PatchedLicensingChecks/LeaseChecks.swift": "7dcc6122f05b68eb0628b827bca496e7ca0a130df94fe13a164d749e8a4b8cb3",
+    "Tests/PatchedLicensingChecks/PolicyChecks.swift": "4c95a9a259b3e5ae64a4eb991473912a245c9bf0eaf6f89f229cccc8d0b4f207",
+    "Tests/PatchedLicensingChecks/StorageChecks.swift": "8d8b570b50a184c8a5e464b205007803098dc8bab4bc35f513b0297a4d4dba66",
+    "Tests/PatchedLicensingChecks/SubscriptionSummaryChecks.swift": "45d9068714961eea80e8ec5ff8bf80242bcb9b0a5e36d9c13b122cd81baf2f42",
+    "Tests/PatchedLicensingChecks/main.swift": "08dcdc1447f309006ccb17453b33cf9a0aeb9d661c187e9aa23ce426a736fb75",
+    "Tests/PatchedOperatorSessionChecks/main.swift": "ca16432be1df9a9b142d54b105c7b9f316a5ed848365a2d240e75f7e2dae3ed6",
+    "Tests/PatchedOperatorTests/AuthorityTests.swift": "493ab68c6b65a45efcde19053c66fce0f39151abaacce15aa34d2c42103aad1c",
+    "Tests/PatchedOperatorTests/LiveCatalogueProof.swift": "3938ef5692b4cb540a3c2b55ecb7668e83a359edb8a348848863035efd4c6ed4",
+    "Tests/PatchedOperatorTests/PublicationTests.swift": "85e32896d6354b25231ddceeb7d25e34a84ec98f5b10cbb3e1c74e3c386dd502",
+    "Tests/PatchedOperatorTests/ResultChainTests.swift": "f6aa6285d7019ba41e8258fd8be17f73c7f8407899962e22ccd154dbcf617b8e",
+    "Tests/PatchedOperatorTests/RootCreationBoundaryTests.swift": "e444c21b03aaa2b032ee5a0e2ac6b576ee86eecb25ecf755d926ddcef2f69326",
+    "Tests/PatchedOperatorTests/RootLockReentrancyTests.swift": "32316bbfd969f57ec5b996402547a99d6719be6d6b735a1a55dd00d535d5dcb1",
+    "Tests/PatchedOperatorTests/SigningTests.swift": "c1600faf514185ba80ed6b6e950b507380b929caa9042d93153bffa4b7b6d0fb",
+    "Tests/PatchedOperatorTests/Support.swift": "627e6fc4868c6da74adf87ebd474082ca35e956245c5833562b74cc455d37a93",
+    "Tests/PatchedOperatorTests/SurfaceTests.swift": "c1fafd5c454c500cd11c4ff3952b18ba6983484c88c93a5a073bc0b1f1e8bd1c",
+    "Tests/PatchedOperatorTests/VerificationTests.swift": "efd7e537603a97f817b4e82c81cf0b236f6c8658a2f2a797fadc7f601c9d6718",
+    "Tests/PatchedOperatorTests/main.swift": "2b91685c0e6b1a89fee692a7c1a14abc474d8fb18670803091bd4960cc666ba9",
+    "Tests/PatchedSchedulingChecks/QueueChecks.swift": "751810f3ae34836730c489190964e4f9da711d15679496e4683e4729a65ea80e",
+    "Tests/PatchedSchedulingChecks/TimingChecks.swift": "8436b6e544ca04c5321ad36603c20d6c06c4662e474d9ce0dee8bef75685e676",
+    "Tests/PatchedSchedulingChecks/main.swift": "819944cb4a43bddacb84488ebc4067ac58b10353d006bc11e2739f7fda69ec18",
+    "Tests/PatchedTransactionChecks/AuthorityChecks.swift": "1eb705e831887ba32eb85fc03d02cf0c30669f168b1c9ecd787bdcac3ddc4e89",
+    "Tests/PatchedTransactionChecks/BoundaryRegressionChecks.swift": "fe4f24e66fd4a7c6f08022fcbd61766a4b5c840eb16804fb98b51f0a81651cd6",
+    "Tests/PatchedTransactionChecks/FaultChecks.swift": "ecf4fb1378b0677b3c49daa57c2a06317040b42bb5e384390e03735a844a1203",
+    "Tests/PatchedTransactionChecks/HarnessChecks.swift": "7765bed5a1bd90219ead371c2c62b35841203f3c0a49995d9befdd0e3a1e3db7",
+    "Tests/PatchedTransactionChecks/HazardChecks.swift": "cb7a641d63c14c8aa39e42a16f6121d6fa66646a31f5ac1792a4bae5b658b358",
+    "Tests/PatchedTransactionChecks/PathEncodingChecks.swift": "b8fbdeb67fa1246c32a8513c633f8a06e0abe21cd1aa845a76c71bcd65829e20",
+    "Tests/PatchedTransactionChecks/PresentationChecks.swift": "5d4676cdf252aa2ec33f2a6fded0ea098eeb700b2828e479224c24da525232bc",
+    "Tests/PatchedTransactionChecks/RecoveryChecks.swift": "1a4b2843350fbdded0b9825ebcea82161fbc258f40d055872fcda3613de35a79",
+    "Tests/PatchedTransactionChecks/SuccessChecks.swift": "e8ddf000090e2dbd3a4574b55703133bd81ee8436e1c61f9a37f4003997188b0",
+    "Tests/PatchedTransactionChecks/Support.swift": "dce7f713e046e806f2387d178131b465ad6261c4ba2a6473da51c81c9057b922",
+    "Tests/PatchedTransactionChecks/main.swift": "ea95c513934ee894eaae00fb671b4fde42bc33d237596c5db0b8c25cdee9b27a",
+    "Tests/PatchedUIChecks/main.swift": "c6fcc8bc2a41a4652b7ee1975716a500405866f913da42fbdccc73f2c8e38736",
+    "Tests/ReferenceVerificationChecks/main.swift": "ea9fdb3f30841a88b519c03e1adf9c26890b0f9e8ddcafe295abff2589093d09",
+    "ThirdParty/Installomator/LICENSE": "ea938190e03013466f80311ee9b3753b9e476b920d8290b9a90a0864edff522e",
+    "docs/background-helper-architecture.md": "187fc28a40c59c825c0cc6e624af1cd1ba1ca9994da659413a9bd59a83722d67",
+    "docs/background-helper-implementation-plan.md": "38329811bd9e0dcecbdc0e0324128c914abe998716071b5f770c3c2c31023251",
+    "docs/billing-lifecycle-contract.md": "b3549f2628cd4a48149514088e362ae5f60e694a5217c5383f55acad6842b810",
+    "docs/build-verification.md": "fcd1a93d40a81e4d5dc7530975a7ff0ec455abda4b16fadb1b3ebfe2c5de66bb",
+    "docs/catalogue-ci-diagnostics.md": "45e5ec3bc74f5336e8ead7abd0f7bb4cf7757c45a66c454635db0c30ebaa1690",
+    "docs/catalogue-service-architecture.md": "68ad7ff9b6546d17521521c14e3b311956555920c9ff4cf8dc1805c4d5bc348d",
+    "docs/catalogue-service-implementation-plan.md": "2006307051a09435d6e622bba5df7f0087dcf561b4a56770700a46755eb09883",
+    "docs/client-flow.md": "a44c7cc87fe547e36ff77545570abd0ce17fe9345863caeb531ac41018030bc2",
+    "docs/client-installed-flow.md": "40adbf8c2bd1f7aaf7e80ad3207ddc3fb71cf6c855364db99706960f6bdf93b6",
+    "docs/cloudflare-licensing-readiness.md": "0945c776a7898de58fed3d3586110285be4d9158c6b92c657ac948267af52f2d",
+    "docs/consumer-release-gates.md": "d7c0589d45bab0767b89cd86185777d078b2bea823b412b329f82e0bbedf7623",
+    "docs/device-allocation-contract.md": "21e1392b06634d6040e1794e3188bc535312223b48c403b35e7282a86db1656b",
+    "docs/disposable-ci-diagnostics.md": "404f49b0271d466d7d59cafa48797e05be21d5681e194ae8477cdd5461c1ac5e",
+    "docs/disposable-proof-runtime.md": "23c3349dfe1884b0be8a50a762cd4a3b09e8ddc561fe3386099fe7c4548ac4cd",
+    "docs/firefox-artifact-evidence.json": "04884e81e7d1cafb0ce4efcf69361807db4587626927d505d57864771e32d270",
+    "docs/first-proof-target.md": "a43e4273c0f004316b7029849570ef7c3340ed83f289f59c4f649559846fe501",
+    "docs/first-stage-cost-ledger.csv": "eecdac732cfc5c377ef553acf7b927e9ad3751db037cf9731166f269ca913eff",
+    "docs/installed-proof-runbook.md": "2948d9e0e3b706ba486098824aed7613df868641ab9718ca28e93df8d62b5c92",
+    "docs/installomator-discovery-contract.md": "6ecd6baf0c86390e1b1e2a78522c2e7940f0a85b00dad46195376c312f13557b",
+    "docs/internal-feature-requirements-matrix.md": "496f7542d57d5d0ac2ebc63074a0e0bb559944db58a605e53919c0bcffaf6027",
+    "docs/licence-presentation.md": "14409c1b6d61001e38debca7214c7bda41f8493605ea06a6e6d944ac02b82f7d",
+    "docs/licence-support-contract.md": "7c8a23dbf4ade86ef3b5cbcc86daae915db5bdd1469f90d4209f40659356ba5f",
+    "docs/licensing-contract.md": "e0864010b39cb0657b04d75220ad8572b71a91fb598cca35be133a6b89f86b79",
+    "docs/licensing-implementation-plan.md": "169a4e19c242593273dceefcff7ef2d5388c7a1ea84c8073483e00f06f917d64",
+    "docs/migration-plan.md": "91810f630c3499fc37e1b0376748b6a35e32536280656f0ed66c3f0e5e81f3f0",
+    "docs/operator-runbook.md": "685857937eec5403efd5e2dc5a63072d616a8500c313eb0415549a143b6826cd",
+    "docs/operator-session.md": "0d3dad5a8e920b3733de93ae87746ad11345b5a02df92917a3b40b0b6519e770",
+    "docs/payment-activation-contract.md": "332dea6c90933e90b1ab25874b0c9a457abb45064956a69a5ec308656758f877",
+    "docs/platform-launch-contract.md": "7ed62b28f593c84bb1dd06be99eb3d2bf0daaec301a30a06ba0142e9b2f96160",
+    "docs/self-update-architecture.md": "5249dbbf88c49c7533a833450534e015675a8696b8a6f762410319fd90d87c63",
+    "docs/self-update-implementation-plan.md": "e5ac350e07c959e732619833ffcfabb40d0afe2714726080bbea77790e8421dc",
+    "docs/transaction-recovery.md": "9534ada821efef5dd165a85c7bbb1315b97e2ee98a234eedd2f4ddb798e19a5a",
+    "docs/website-catalogue-contract.md": "b344f5e34ed6299c82711813abb7d5266f8f56fc47f0419ff8fff7a7957af9da",
+    "docs/website-catalogue-implementation-plan.md": "033cdf34d8809aea03e4beb5ee49ab1f768be052b8d9eb70c8bdad23584b4fef",
+    "scripts/catalogue-ci-observer.mjs": "d5bf86d772085cac01fd50709e2ce3901d08f5480cb94bccce07861cb060dcfa",
+    "scripts/native-proof-parent.py": "73ca6e811600f661e4eb72f0b1e95ba960b83a7d0a33e4a4bc0166991b7f5680",
+    "scripts/prove-disposable.sh": "791344c0e1106f139ff88a95c1012abd37b36d0d60612bc0dcf8bc05538d7d43",
+    "scripts/verify-activation.sh": "f2a068b1b34fac0428c1c02aa612251b3d110ddabd6bf7deaaef5f2e21b8d88d",
+    "scripts/verify-artifacts.sh": "8da87db34680380e2ede86cedb40db12d0533070cff75952278222c14196da52",
+    "scripts/verify-billing.sh": "ded857826ee9a8f2626323dbc1654f334767fdd2721fc55793e5771aaa9be372",
+    "scripts/verify-catalogue-protocol.sh": "7aa3abcf8777d5cdd0daf1f7cc356c711757bab06add3d0dd9083a5631f4bfe7",
+    "scripts/verify-client-flow.sh": "84b4bd496a2539b96c1f51eefe2a8c58e6f972a82f5ba981126f47be20c56839",
+    "scripts/verify-core.sh": "220055309a042aebba35a068cc2af284926e5b597315496f340d1b96a660a5cb",
+    "scripts/verify-disposable-boundaries.sh": "43e0221f0ba75200a7e18696b0f3e8795c2e9026291f71b83b8e25d7121cb927",
+    "scripts/verify-disposable-proof.sh": "2ab9cadcb723c8ea768dbccc4c6ef6ea492213ac77a29f7f441c2b40cad0fc73",
+    "scripts/verify-inspection-protocol.sh": "4d742568c98676240688e60fa4fd7ac4188048fe9d1ce59a13bb6cf8aa3d6b22",
+    "scripts/verify-installomator-discovery.sh": "a51058004d56b43676d739300ac3fc51cca87ec3241d9868b89e357c303ed120",
+    "scripts/verify-licence-support-ui.sh": "b824019b4e9832e50636f7870ed14e04ff67652761299571afac57160cdcab66",
+    "scripts/verify-licence-support.sh": "2cfe7ba741c9a1e0ab8548f824332813631a89061bddfdb3864dae5e6c690baf",
+    "scripts/verify-licensing.sh": "0fba1030b00a86d633ac488ed296509f8eeee271d78d119c73055ce20353c212",
+    "scripts/verify-operator-session.sh": "7236e4b90601768e745a5143cee56b9f0b0900b4f56c413a63efa8f884134e73",
+    "scripts/verify-operator.sh": "54270aaf03fe5ab302eb5c76dba140b602e76f85f8196cc958442c0ab9f8453c",
+    "scripts/verify-scheduling.sh": "bdf6e71954adec0b26d761db368aa73ba904a6edcfe4d7e5e4bf653a26dffd20",
+    "scripts/verify-service.sh": "9c7b2983e4d2becbd2090d6e2b65142835a218d8b76503973be57681d91826f8",
+    "scripts/verify-support-request-protocol.sh": "e1ba2504a7a5faf1f141f4d0abe608b0b9914662f1afa492f806bd4eae19ca4d",
+    "scripts/verify-transaction.sh": "c51dcc1c117776d1948ea2a75a17caa9c6b62fda46b9711681335bc7d48d6eca",
+    "scripts/verify-ui.sh": "9186072e1b8f6672781f6d44089cb154ba806461e1cd002019192250ba0c570b",
+    "scripts/verify.sh": "d2ec02edd214df0729a922ba36e01b913aaac17c8eb6e20dcd6f9bf97df1c7a7",
+    "service/licensing/.gitignore": "462313e9cdf5217c7e729cfd60632a763ad1b8452774d4b736b90ab2e03a2c28",
+    "service/licensing/.node-version": "73fb1b615e2043a933be1c0895cde4358036acc28d785692509b822aa53c761f",
+    "service/licensing/.npmrc": "c990f3fbba71e8c50b487ddc948fcc226d946783c8220992943b00b34ac41aaf",
+    "service/licensing/README.md": "cf79063cfb2bbcec849dcd227302817fef0ac78419b6e9f2bbb91a5763f9c669",
+    "service/licensing/migrations/0001_accounts.sql": "1c830fec52ad7374c8619bce7969c40f4f68e9cf38c48b2187122d5fc342af14",
+    "service/licensing/migrations/0002_activations.sql": "a96ec1c5fa4fbdad4289ac57b2e947200e8bea33755a914f43ae9f9669c94596",
+    "service/licensing/migrations/0003_billing.sql": "47dd9250e721d43b747fb1347a55a9a00bee6bd1ec4b520e19d0855c0e079025",
+    "service/licensing/migrations/0003b_billing_lifecycle.sql": "379191ef86ffd18f20c6499edb4b28b6addbcc5012f62a3d340345fa836b332a",
+    "service/licensing/package-lock.json": "873b1531f32c4de50cf10cad0383f48679a7906601692ffdf572c53fd3860b44",
+    "service/licensing/package.json": "405bd9dd0287f2eb8877917d88945365bc0c366e92c620cac70a8c02f7dbd442",
+    "service/licensing/src/accountBatch.ts": "5131eba2f7e44e0f202146666226213496bbefabd23223be8bfd182488e290f4",
+    "service/licensing/src/activationPlans.ts": "319ff12fef34177d95dccd9ae16ff5345bf5c5826875ac8c73b5752a6ca65950",
+    "service/licensing/src/activations.ts": "552abdf6a375a7865c1e5a9d0c8b80cc162069d4b3fa662b07f2a75819e769c2",
+    "service/licensing/src/attestation.ts": "078edb39599d60e629a259d76892d06de450439a15c9a94e5b13cc36018db95b",
+    "service/licensing/src/audit.ts": "3be18897c197415e7695bbee396cd954ecdd149576a1c1b641f6fcfa01c30ba4",
+    "service/licensing/src/auth.ts": "8c25aa092d7d71051b8db7c9511c650af8762d6c2988286fef172b219111382b",
+    "service/licensing/src/billing/adjustments.ts": "e3d3a91528f3619dde8594b93070ca372ad4110299c595253c9c8b66045d6cb6",
+    "service/licensing/src/billing/bridge.ts": "e3d3a91528f3619dde8594b93070ca372ad4110299c595253c9c8b66045d6cb6",
+    "service/licensing/src/billing/canonical.ts": "c9ede68ff524a961cad8c0a94e22e4795d85a862cdb248e6bd04eb03e580dc07",
+    "service/licensing/src/billing/config.ts": "143fa048523b6149ba00e1ecc4b2aae6bae70cf4198430ba2bd10bff9fcece68",
+    "service/licensing/src/billing/derive.ts": "687db78ccba68ad5b3473a293ce29426457e272803787078457a6b2b4f6020b9",
+    "service/licensing/src/billing/grace.ts": "e3d3a91528f3619dde8594b93070ca372ad4110299c595253c9c8b66045d6cb6",
+    "service/licensing/src/billing/handler.ts": "2c6ee52912e733f92e75e342bc2dc536732d6dbb514b093b90602c9bb50c6e21",
+    "service/licensing/src/billing/inbox.ts": "c058efe298e60cc27580a9d245bafb33d9b0eec40587e7728f5d18af6f59c3ba",
+    "service/licensing/src/billing/intent.ts": "e3d3a91528f3619dde8594b93070ca372ad4110299c595253c9c8b66045d6cb6",
+    "service/licensing/src/billing/lifecycleConfig.ts": "bc80429c2731586fbc1f6d06242674ad2b24eb6244d1ee549d5fd63b0c3fc27a",
+    "service/licensing/src/billing/paddle.ts": "ff365c34f79e2760e8763d553a78d028a55e90c7c4a57f17b5663eb8dac75093",
+    "service/licensing/src/billing/periods.ts": "e3d3a91528f3619dde8594b93070ca372ad4110299c595253c9c8b66045d6cb6",
+    "service/licensing/src/billing/reconcile.ts": "7a8c0bdad0a290a7dd7060b2cf86666ce025fa297f34ebaab2bfb9ac46a1fa78",
+    "service/licensing/src/billing/renewalStop.ts": "e3d3a91528f3619dde8594b93070ca372ad4110299c595253c9c8b66045d6cb6",
+    "service/licensing/src/billing/retentionPlans.ts": "e3d3a91528f3619dde8594b93070ca372ad4110299c595253c9c8b66045d6cb6",
+    "service/licensing/src/billing/review.ts": "e3d3a91528f3619dde8594b93070ca372ad4110299c595253c9c8b66045d6cb6",
+    "service/licensing/src/billing/schema.ts": "fc6924f07a5e05d40589005dbddc8237d34b6480275e854e5359b8dd6120eef2",
+    "service/licensing/src/billing/snapshot.ts": "51e31a0792268d4fa1a6281d8467d71b394650bd950fda793811f3984b952d9d",
+    "service/licensing/src/billing/status.ts": "e3d3a91528f3619dde8594b93070ca372ad4110299c595253c9c8b66045d6cb6",
+    "service/licensing/src/billing/strictjson.ts": "1bcab310274052bba53c8d0b8f686b3fca4e9496b4e24c2271682be2209ede84",
+    "service/licensing/src/billing/types.ts": "65214cf55fc3549592b558f9e3919c841c616078781b784a2df056b2f5a2fe24",
+    "service/licensing/src/billing/webhook.ts": "77614771a05d9e4b83c4dc0a390d5c44518af74b687e42da919d9fb839e6f7dc",
+    "service/licensing/src/deviceProof.ts": "92a0f83f38391eb61af583cb374fbb44b79d4a9a70c5e442ff52c8773cc7aec4",
+    "service/licensing/src/email.ts": "a65823f91e8447544d17c84fe9da1c4acccee44013fc7ef4219763112995c747",
+    "service/licensing/src/entitlementPlans.ts": "fa2a64e240f2a1fb44b502da9fdee7087e769422cd7801b8f9b43a2c7c7cf80c",
+    "service/licensing/src/entitlements.ts": "78a6924b7f1e417e6d772794ad94c7c3ce3a64484d986ebb9b80ad716bb7a838",
+    "service/licensing/src/environment.ts": "6a7dc8e431dc24da156b3bbec069d1bea9517135c84c6c0b49182bf8fc1cfa88",
+    "service/licensing/src/index.ts": "8f73ab05551e1227aed1344d7097619dd04681b57d31c5e53cd8c60ffd1f77ab",
+    "service/licensing/src/leases.ts": "6173466fd928b6d78ca91bc400b72f2e605bb2f9103d71248c85d53046444a1c",
+    "service/licensing/src/ratelimit.ts": "85ad55016729e51f1e311d82e27acdc660885c02fc2d9bf21623d1fa1a1dee4a",
+    "service/licensing/src/retention.ts": "cd325435e3cc5436361ee6cb63c338b8617f05f9e0d46f8b83f08c4e57c1d170",
+    "service/licensing/src/sessionAuthorization.ts": "623ee3484cd5d27dc685e1879b167fa5fddab494a50833bb8d45660228cf3a7b",
+    "service/licensing/src/store.ts": "8a937eca87c08845c74cc08f13b691b1d311d61ef6891117c0bff1bdb1b02df7",
+    "service/licensing/tests/billing/fake-paddle.test.ts": "cefc4e02e75b69a393542a4e3b05b0432469b5c86590bc125a8e430030b3d4c1",
+    "service/licensing/tests/billing/fake-paddle.ts": "0c9cb845fdbb0dc961504e55ee703443bcd7bb234385ce3b9809cdf0e23da638",
+    "service/licensing/tests/billing/inbox.test.ts": "eb949416acfa97f7ebe0b3391d337978efdf0b5bd3d67c91c789a95aba76f39a",
+    "service/licensing/tests/billing/lifecycle-schema.test.ts": "33f82b80fc94830c2bba17129786d75eb9406df4fe846d810f06f8c664f82e32",
+    "service/licensing/tests/billing/lifecycle-source.test.ts": "e470f9ea7e90f494e130efd7ac5fb7a511524fda06511adb13917b10f9bbc5ab",
+    "service/licensing/tests/billing/lifecycle.test.ts": "78f28a3881f8ce0f3a997f39d4b0c0f80aea65460494c682f4dc91d986919963",
+    "service/licensing/tests/billing/reconcile.test.ts": "6343c53cf497ddc074e199ed9cf310a6c701f77f056778d7d7b16120fb594b23",
+    "service/licensing/tests/billing/signature.test.ts": "e6efcf41168020688e5cfbb0ab66cb60ee796001805ee00c493d6ccccf9a0635",
+    "service/licensing/tests/d1-local/account-concurrency.test.ts": "9c5de2410676a8acdee128cf7deeff39cbea4de12c978a082bdad8596b28a475",
+    "service/licensing/tests/d1-local/account-owner-check.mjs": "4d73640be819ae4ff85e50b335cac951438930761e10c821ddfc03481a834d86",
+    "service/licensing/tests/d1-local/account-owner-observer.cjs": "6a1814b8da6044af2e44d01d7747133288fb8d22d910a44eae6a2c174b32a912",
+    "service/licensing/tests/d1-local/account-preservation-baseline.json": "aeac2da0a89a209ce614b78217ecfff8fc5f712e054bfa82d472ad6ea41b4be3",
+    "service/licensing/tests/d1-local/account-preservation.mjs": "862be054ba55df8c2e4ebdda48aa78171201535a364efc272f7e5ac743f1ea73",
+    "service/licensing/tests/d1-local/account-runtime-controls.mjs": "e3847dc0f2cfb1d5d7d378949a870b11b2d9daae8cb03f9cc08b88e7591531df",
+    "service/licensing/tests/d1-local/account-runtime.ts": "026412d98e95f9ea6248a81d6668ad6fb66e3b14e2185d9a2bebab402fdda9cb",
+    "service/licensing/tests/d1-local/activation-concurrency.test.ts": "16375d75990a558b06703eed96dbf677c0eb69ba6b91d392708f5f484f1d53c4",
+    "service/licensing/tests/d1-local/activation-guard-boundary.test.ts": "d6d8ed9a25beef567ffc190ef05588fbc2e6677674f6dca80e9bb0053d7946b0",
+    "service/licensing/tests/d1-local/activation-repair.test.ts": "05bcee15d09684479f86ccfeb5207dddcd438dbcb44892d8035f8058cd252180",
+    "service/licensing/tests/d1-local/billing-inbox.test.ts": "5f7fbb84b812c8f26c2f08835a56ab8283fbe3a2e547725ca9f6a67261b1295e",
+    "service/licensing/tests/d1-local/billing-lifecycle-faults.test.ts": "6e9f55b7c397e99f010ba60fcb54744aa4c74e5299570ef3a31dbb20ec6d51b3",
+    "service/licensing/tests/d1-local/billing-lifecycle-races.test.ts": "aff2929024365068c43f8f04b0dec02f5b8e78204ce6425bd4b169ddeea83c44",
+    "service/licensing/tests/d1-local/billing-lifecycle-restart.test.ts": "73203f91060401dadb4fbc548b530154047cac6b2b9907ee7a86fd880b564c4c",
+    "service/licensing/tests/d1-local/billing-lifecycle-runtime.ts": "fad98ff0cd8428e57dfc6f9d5861b80ccc7a3e03ffe33c55ea6d124835b3f0b8",
+    "service/licensing/tests/d1-local/billing-lifecycle.test.ts": "f3aeb78a5778658d44ad4171d24b841a389247fee226d9122504556369928551",
+    "service/licensing/tests/d1-local/billing-runtime.ts": "16d554547c14f297786dcdb36619606674513b1245d03e9ffb91d269c7fb9df9",
+    "service/licensing/tests/d1-local/cleanup.test.ts": "ba4ab1ae40589fd17f4e08b77b68f268e708e5076e215a30f93e38bc0ad4626e",
+    "service/licensing/tests/d1-local/fixture.sql": "e6dccadd59ffebd7e483c6a57ce962349947f96a9e519c5bb5771480ef28123e",
+    "service/licensing/tests/d1-local/rollback.mjs": "f6d695b529a52b171a7ba3c37399b599236f76340af953aea5c3ac42ea2144e9",
+    "service/licensing/tests/d1-local/runtime.ts": "721964cc4867c4cd33785c39f055fbc8b0751e0cff4e62fb864306ab0bbe7bb8",
+    "service/licensing/tests/d1-local/s1b-boundaries.test.ts": "556caefbc58dec383e2b66c03e24c238e0cb760d3a40368c8990e5f5fbcc4e44",
+    "service/licensing/tests/unit/activation-repair.test.ts": "db67419948a62587132601da60dcb6b84e7034b63beb76e192c9faef8df18ad9",
+    "service/licensing/tests/unit/activation.test.ts": "f121fc277edd69a783ff178854f3ece2d7ad57443c1e66e584205b639c30d6a8",
+    "service/licensing/tests/unit/auth.test.ts": "146314148a20e633c8619794ea56e821e703e0f2ba1809c9f268b8de8b245325",
+    "service/licensing/tests/unit/harness.test.ts": "cf63fe1acfdcfc51c96c636cf0edfc9d1f3ec232a2e645d338471c84344b606c",
+    "service/licensing/tests/unit/leases.test.ts": "18685d02f905b9a7065847ef9609858fe4faba5de00e291e6c10e8f0f5354802",
+    "service/licensing/tests/unit/retention-results.test.ts": "6f2911c6763c9521813d5ddb21b99f542e132c14a00c000ba73b486f285cccee",
+    "service/licensing/tests/unit/retention.test.ts": "03b2f649db1c972118a1b9e11fa6e8e7417065c27d5833e4188bba726da8234c",
+    "service/licensing/tests/unit/rollback-errors.test.ts": "effef870936f2d9ce17c4c80cdb3d90e64861f8170ecc53f327b546bf4dd8689",
+    "service/licensing/tests/unit/trial.test.ts": "98f5eedbb2e5ac7a09931e5c6eec6f75aad55459ae076649caedd10b008744a9",
+    "service/licensing/tsconfig.json": "367723d2a7130b608524539b482bb5465e5bc587d48129bd0e750bfda8a4e9d3",
+    "service/licensing/wrangler.jsonc": "477bf43bd225f6982a573535423ad2b66ca786d922dd2a0d32da0347e1424a44",
+    "services/catalogue/discovery/upstream/attempts.mjs": "99eb6f274393fd1873923ba1de1fd791e54e9e2de2c8879acc40e574ec52d7df",
+    "services/catalogue/discovery/upstream/candidates.mjs": "185b7dad589fbafff8c1c939602e2b89bd2bcf5852e023e30c841e4322944441",
+    "services/catalogue/discovery/upstream/contracts.mjs": "4a054f25f23d4f5ddacdd81224ce0457c7c95509654275483a8651b99811a9ce",
+    "services/catalogue/discovery/upstream/diff.mjs": "eee8ad7839361bc30088098fe0351f3d2f07622f47a2232a147ef681981983e5",
+    "services/catalogue/discovery/upstream/literal-parser.mjs": "83d01f789cceafbc03798d5c43fa2984deab25ac2dbbe5af2a1dcbe7f82119a8",
+    "services/catalogue/discovery/upstream/snapshot.mjs": "454f17f8b8bd06c0a94f38cef5d6fbeb02abcbeee8992549f25a364e713e81a1",
+    "services/catalogue/protocol/README.md": "39972f0c32f99e9d2fb5e6550e146d59710aac8c010a269c6078c44c4c01ce71",
+    "services/catalogue/protocol/catalogue-v2.mjs": "46dbf3b935f31d1050f73d5853833742c1d043a215fc272b337b781910ff08c0",
+    "services/catalogue/protocol/catalogue-v2.schema.json": "a325dacb96938f391d721d79ad2196122d2cebb792a559cf999f2cd8360a6856",
+    "services/catalogue/protocol/evidence-v2.mjs": "55e1923ee8117d3ff2f22d6f78026ef95cdbce81ac08779afd2af6e1b3873354",
+    "services/catalogue/protocol/evidence-v2.schema.json": "7e19c12601bd0c0b5d64f61d5943da2037c0da1a44f047d9f0510da64faba7f3",
+    "services/catalogue/protocol/fixtures/catalogue-v2/README.md": "f12f282bb6dd590b8f3a9fda667e2ad6dc06fd73cc103295e96cc59c0673f709",
+    "services/catalogue/protocol/fixtures/catalogue-v2/TEST-ONLY-key.json": "ded757152890ea6f191973f7c7d0fc5662026f08c23c414ba9630555ece72451",
+    "services/catalogue/protocol/fixtures/catalogue-v2/empty.envelope.json": "c151a7323a811791b5a65018deab8a0679a6ab561477cb6be9be23afa1f3d97d",
+    "services/catalogue/protocol/fixtures/catalogue-v2/empty.payload.json": "1f0666383610650a25e1565ae65c63b9723a6c0d926c4695f10d6218bb8df846",
+    "services/catalogue/protocol/fixtures/catalogue-v2/frozen-v1-sha256.json": "02fa0917161b9cdc5923908d229facb680129cbad84f5398f2819dfae7a2a629",
+    "services/catalogue/protocol/fixtures/catalogue-v2/golden-vectors.json": "f699ba6a28298fd8f1323a91cdd74aa8b1f8fa59a5053fcf6d3f31e22eb30788",
+    "services/catalogue/protocol/fixtures/catalogue-v2/invalid-examples.json": "eef0837cd293f095030cab7aa1b5278916ee38ba98327d11206f52246a5dd1cf",
+    "services/catalogue/protocol/fixtures/catalogue-v2/one-entry.envelope.json": "a77035479dc8cc6ce1f5c049855e078098fb302e59096a7d532cf44bf430493b",
+    "services/catalogue/protocol/fixtures/catalogue-v2/one-entry.payload.json": "33907724ba6bfcaf572644f898257f52b28b3d31476b996de5960349154935b8",
+    "services/catalogue/protocol/fixtures/catalogue-v2/whitespace.envelope.json": "3e16077525b052ab10fbc1d8f49b295fbd21daf2dfe01034442b11568f74c9b7",
+    "services/catalogue/protocol/fixtures/catalogue-v2/whitespace.payload.json": "ee1b30c7dba5553cac77b54b62b768f140e898d69e41f269317203b6abac71db",
+    "services/catalogue/protocol/fixtures/catalogue-v2/withdrawal.envelope.json": "c33f5b5352d4748c8e9622247b0b32902630312964213f4717dc024eb46ce8ad",
+    "services/catalogue/protocol/fixtures/catalogue-v2/withdrawal.payload.json": "ded5f9bcaa9b7eebc15029ced809bcc3997526c87283b4058cbe46b4b673791f",
+    "services/catalogue/protocol/fixtures/inspection-v2/evidence.json": "a5baa32f2bf68b6310f81a1a55d42c61058b8bf40964310e6f7afdaeed6e2376",
+    "services/catalogue/protocol/fixtures/inspection-v2/expected.json": "156afbbb830e1eb2c16a96960cc0d358ec4acf7784c220c6ab7018a99839b0fd",
+    "services/catalogue/protocol/fixtures/inspection-v2/job.json": "03cedb9a208839054a3604129d88066f7e91d8e78710cac6b9e2ed700a56e36a",
+    "services/catalogue/protocol/fixtures/support-request-v1/expected.json": "4010ab808ed6f92a75b9d8103e9d3cbdb573f7a62bc6456e97fbe25c9aef3b85",
+    "services/catalogue/protocol/fixtures/support-request-v1/valid-minimal.json": "409bfe943479c88818ab9e9f4cf1b2b15b3c5120a66bf88a330e0859554a721d",
+    "services/catalogue/protocol/fixtures/support-request-v1/valid-observed.json": "947e1d6809d566143ea1183d6b9675d40c1c04d103c2de14a8a95cdad5bbce21",
+    "services/catalogue/protocol/job-v2.mjs": "73457a76f8f5675432792d605fa21ad680992bec081730d8287e376b30a014d9",
+    "services/catalogue/protocol/job-v2.schema.json": "602cae197674317af8dfa5d764810af033415955335d37db37b2fbd9f5d0e6f0",
+    "services/catalogue/protocol/strict-json.mjs": "e77ec6218115f993ffea791e0dfc201b0dcb68a5b6d76158e28b6a135691fded",
+    "services/catalogue/protocol/support-request-v1.mjs": "e222ee821e1a27f687422e5d16bd3bf3b488c84cbf85588129782522c7d47a53",
+    "services/catalogue/protocol/support-request-v1.schema.json": "a599d75981e6427f5866bffd7d2629323f95956c0b1f2495ec7050155459345d",
+    "services/catalogue/tests/catalogue-fixture-support.mjs": "8635d3620e8e0899bea05a4aa9f05273a10893594ddbed62db50efb7fa74f286",
+    "services/catalogue/tests/catalogue-protocol-boundaries.test.mjs": "a8cd2d9f0c5eb6e0fc96ea11c6d53a2b645102901b3d4a732c400c63858101bf",
+    "services/catalogue/tests/catalogue-protocol.test.mjs": "32240af757b215935545c248fcbcc0c65cab650caad2a3a2e3606eab15711059",
+    "services/catalogue/tests/inspection-protocol-boundaries.test.mjs": "315cf4a409cf4fffb9e6a65344e4358d43fd921e94e697dc897317520d7ef0e4",
+    "services/catalogue/tests/inspection-protocol.test.mjs": "1139a8122c522b6fbf114458028e88898e1452557fdd8ef2501f140126d48128",
+    "services/catalogue/tests/support-request-protocol.test.mjs": "02daabf3874b239b99d8ce6b0a6a56ba0d27e7120a75952de32c5e1f9b46621e",
+    "services/catalogue/tests/upstream-diff.test.mjs": "9f7fc3893eefb5a3da99470325b5e68a706b44f15b4b005872f18f15880d7c2c",
+    "services/catalogue/tests/upstream-fixtures.mjs": "4172a8e63bcff50381b49148deea2d890dd0d23214fdc8946b981ebb51ed32b2",
+    "services/catalogue/tests/upstream-iteration.test.mjs": "2b5b8e28322f1b9747e641aa6db6e19008d24899c6feecf8d6284e5cbebc3dfa",
+    "services/catalogue/tests/upstream-parser.test.mjs": "9f8cb344f75cd3e557e7b8605f1d730c22385645f72b8e509fe7f46ddbf7fdfd",
+    "services/catalogue/tests/upstream-resource.test.mjs": "9d56820c6f097f16690b40376b6eae8f87e719dc96d7d3b8bbd4bd7cf2fd26c3",
+    "services/catalogue/tests/upstream-snapshot.test.mjs": "d5a4f62a340585341c269b00dd823e2f10244af514653b80fbfe8d2d7a4eaeeb",
+    "source-provenance.json": "2e2946ec35cc57e42e05d9d9c6ded51b88e97d8caac3c7feb5a6915c2602c278",
+    "tools/catalogue-protocol-vectors.swift": "b33166b17814fd07b5ee396aee9b4175fb6366adbe0e22a7fd6e10c2f034d257",
+    "tools/run-disposable-proof.swift": "f3e15708fd0eaf7aac9906757595b0fd377835c4923441c521dd59d54e4d1b5b"
+  },
+  "contract": {
+    "expandedCaseCount": 31,
+    "tests": [
+      {
+        "name": "'real sign-in has no trial side effect'",
+        "astSHA256": "1956807192e39cd213827cda89ae06ae3d4db60b01395475a1274e0a910589c4"
+      },
+      {
+        "name": "'N-way explicit trial exactly one shared guard/audit/nonce winner'",
+        "astSHA256": "70d28c85c34a455485ba13f6bc02a1562c761d8e68d1781081f4af3d8445123c"
+      },
+      {
+        "name": "'exact retry replays stored response, changed hash refuses, another key never redates'",
+        "astSHA256": "f1caa9a6979d5b50f9662ed06189616faea423fa1c413c682e9e1f2686db384c"
+      },
+      {
+        "name": "'active beta refusal changes no history; beta end preserves full future trial'",
+        "astSHA256": "be3265fce7d63ed2f47d2b9f12ac1a8d11301ea71c37a0e1931be3dc7e5a4234"
+      },
+      {
+        "name": "'stale guard/reused nonce/overflow cannot mutate or grant'",
+        "astSHA256": "90f19e2aa59cf03902f579496906fee7877dc703a49aedb31819422ae533ecdf"
+      },
+      {
+        "name": "'audit failure atomically rolls back trial and retry receipt'",
+        "astSHA256": "3adfa8a37903f95c560c9269c4a944bad886f3a0db5235851c8909f1273f6a39"
+      },
+      {
+        "name": "'cross-account credential refuses despite valid target guard'",
+        "astSHA256": "573fd30d639ed17549379de896945376153d2f4c1588870fcac1e0b4ac3047ec"
+      },
+      {
+        "name": "'deletion revokes sessions and strips old email association; fresh registration marker never extends'",
+        "astSHA256": "f9d1f2dcdf8aada779f5ed95cf0e3358054c32b7ad6650cd64733ec9b2258561"
+      },
+      {
+        "name": "`fresh actual sign-in trial at fixed marker boundary ${delta}`",
+        "astSHA256": "d319968ad51fd9570c27dccc9c63099cf7b1b4f2a06a8fefcb712c0f400d7b4d"
+      },
+      {
+        "name": "'cleanup dry run then actual challenge/session/retry/audit TTLs is idempotent'",
+        "astSHA256": "f5acc82ef651c803a5b0f041c300734d1a0e6148c8847376bef9bde62620791c"
+      },
+      {
+        "name": "`cleanup preserves actual histories with ${protection}`",
+        "astSHA256": "2cb1dd37d073653b10693731acad46e1aba0b74883de553d1a8f546fc5fb14a8"
+      },
+      {
+        "name": "'cleanup/audited lease refresh race cannot erase an outstanding maximum grant'",
+        "astSHA256": "eb6cb03f156e611fc81494036a022974f65910a9f262c10520475bbe7d139e44"
+      },
+      {
+        "name": "'lost issuance audit returns no bytes and rolls back sequence/max bounds'",
+        "astSHA256": "0b879bafc987ee16883ca2027017bda538aceaca2dd8eb94908e5839bcca10bd"
+      },
+      {
+        "name": "'refresh/release/cleanup races retain maximum historical bound and released identity'",
+        "astSHA256": "c7ed6997fefe1bbeeb967dd8c4315d6c02b0fbd0ce9d0e5653bb726e18fb7fcc"
+      },
+      {
+        "name": "'cleanup cannot forget refresh replay history while session is retained'",
+        "astSHA256": "6bdff0ff83d47429fb233ba1ea71a5b81bce2f7d66f7a16389de143524a54671"
+      },
+      {
+        "name": "'audit/retry cleanup cannot make earlier S1b nonce reusable'",
+        "astSHA256": "ac81b96fa9285f5900bcce41f295b4f28aaae1eeade0415d04a6516085d56d51"
+      },
+      {
+        "name": "'new adapter refuses unknown subroutes and unsupported methods'",
+        "astSHA256": "8a7852dbfe22abb500cf6c712e3f3fb8f76826fff94756ccc8079f156ded4a73"
+      },
+      {
+        "name": "'new adapter refuses unknown subroutes'",
+        "astSHA256": "bde0d1b21ad1283fee2a0fa66a2158571f5f00aa917b9dcd77fd1c37476c75a8"
+      },
+      {
+        "name": "'new adapter rejects duplicate-key/malformed bodies and oversized streamed bytes'",
+        "astSHA256": "c8ad570748551eb283446bc46b3efecafd8ac7227f6d00200f2383faeb4303de"
+      },
+      {
+        "name": "'new adapter bounds streamed body without trusting length'",
+        "astSHA256": "e730b981ac5cf7e4e4298ad8ee669a9c5a9a2bee0d465be0cc7063577c9c165b"
+      },
+      {
+        "name": "'new adapter requires canonical fixture clock, key and explicit signing seed'",
+        "astSHA256": "272bcf322dc2a62c346330537009af675456120bbfd2c512050e8f8202a600fd"
+      },
+      {
+        "name": "'start and issue refuse expired or changed sessions without mutation'",
+        "astSHA256": "05e6baac77ab5b80bb7676234cc01ef24e4ed4191d68b0129ea792730b051df2"
+      },
+      {
+        "name": "'issuance with default missing signing seed returns no bytes or writes'",
+        "astSHA256": "f9705847205636fa2b45d0c23ca4d624faf84302c83f068c311dd6ed099e2b99"
+      },
+      {
+        "name": "'missing synthetic controls always refuse'",
+        "astSHA256": "7f2e0a01c8c354e642f39d49d681dce4d3292303a787592ecd606996ebb50dc8"
+      }
+    ],
+    "helpers": {
+      "count": "9f41650e67f50c2d4f7188b5679138bd63685d984a3f23ad4ce29e6d6e13c370",
+      "snapshot": "f3fb15c74d46a0b38ee7750b66d5296afd15330e918c2616b8cd1db30a69f050",
+      "guard": "e4358de81799eab0f3946e887f190eabe3001eab55b86f3bfa25374125438e2d",
+      "start": "c9231a725c9c9ef501a5867cdaf975fba5eb0d24ec8e52bbbcede004e4f8f54a",
+      "deletion": "42094afe0c90fae17f27c2b843441764577cdb591340dd92485055a1fbd915b6",
+      "cleanup": "38e852fb5be042397962f0d23ffb05dcb0ed12b2cae66ae79c62a13db7f6cc9f",
+      "email": "b7fd3ea09cb56791e306a7576150a7311ae47080cc38abc3916b38a2441b74cf",
+      "post": "c3a471de12d2263484b9073e7e21231d3e3c1ac761e883174f43554d04853c35",
+      "request": "517bcb845230783c0f8fef9fc589d66965fb2788f19ae054e0d18e3eaf20591f",
+      "consume": "5ca84be43fe6d6574c069810c53cf9510ffa0751b30bc0cacef9656bdcead8b0",
+      "signedIn": "a943c0e79fbecc19fa213bb923ba30197ffbdaaa05a1ee0316f94a35cdedfa27",
+      "credential": "d57c0db2d21be0a2fac25ea22560340e39c318457d595b5d99ffbead55adf304",
+      "binding": "8f50a6a4b840f95da248ef102744794de3756cdafc2909e268737c7e4e6f4d16",
+      "refusedConsume": "51d60334ffb8fc57c85829e3a9ca6bca7df557a731727893a533308eda6c2a58"
+    },
+    "sql": [
+      "migrations/0001_accounts.sql",
+      "CREATE TRIGGER s1b_fail_audit BEFORE INSERT ON account_audit WHEN NEW.action='trial-start' BEGIN SELECT RAISE(ABORT,'synthetic audit denied'); END;",
+      "DROP TRIGGER s1b_fail_audit;",
+      "CREATE TRIGGER s1b_fail_issue BEFORE INSERT ON account_audit WHEN NEW.action='lease-issue' BEGIN SELECT RAISE(ABORT,'synthetic audit denied'); END;",
+      "DROP TRIGGER s1b_fail_issue;"
+    ],
+    "constants": [
+      [
+        "VariableDeclaration",
+        [
+          [
+            "Identifier",
+            "initial"
+          ],
+          [
+            "FirstLiteralToken",
+            "1791734400"
+          ]
+        ]
+      ],
+      [
+        "VariableDeclaration",
+        [
+          [
+            "Identifier",
+            "code"
+          ],
+          [
+            "StringLiteral",
+            "'01234567'"
+          ]
+        ]
+      ],
+      [
+        "VariableDeclaration",
+        [
+          [
+            "Identifier",
+            "emailCounter"
+          ],
+          [
+            "FirstLiteralToken",
+            "0"
+          ]
+        ]
+      ],
+      [
+        "VariableDeclaration",
+        [
+          [
+            "Identifier",
+            "requestCounter"
+          ],
+          [
+            "FirstLiteralToken",
+            "0"
+          ]
+        ]
+      ],
+      [
+        "VariableDeclaration",
+        [
+          [
+            "Identifier",
+            "ipCounter"
+          ],
+          [
+            "FirstLiteralToken",
+            "0"
+          ]
+        ]
+      ]
+    ],
+    "caseLoops": [
+      "1ae5e5556cdec228ca94a2b0c3c524ff9bb190ca82e9156b68a625e4aa184179",
+      "6b73101cdfbb882684e6ff62b0479d03ad61fcd4be9cfb89b24eaa99f712666b"
+    ],
+    "initialAssertions": [
+      [
+        "ExpressionStatement",
+        [
+          [
+            "CallExpression",
+            [
+              [
+                "PropertyAccessExpression",
+                [
+                  [
+                    "Identifier",
+                    "assert"
+                  ],
+                  [
+                    "Identifier",
+                    "equal"
+                  ]
+                ]
+              ],
+              [
+                "CallExpression",
+                [
+                  [
+                    "Identifier",
+                    "count"
+                  ],
+                  [
+                    "StringLiteral",
+                    "'accounts'"
+                  ]
+                ]
+              ],
+              [
+                "FirstLiteralToken",
+                "0"
+              ]
+            ]
+          ]
+        ]
+      ],
+      [
+        "ExpressionStatement",
+        [
+          [
+            "CallExpression",
+            [
+              [
+                "PropertyAccessExpression",
+                [
+                  [
+                    "Identifier",
+                    "assert"
+                  ],
+                  [
+                    "Identifier",
+                    "equal"
+                  ]
+                ]
+              ],
+              [
+                "CallExpression",
+                [
+                  [
+                    "Identifier",
+                    "count"
+                  ],
+                  [
+                    "StringLiteral",
+                    "'sessions'"
+                  ]
+                ]
+              ],
+              [
+                "FirstLiteralToken",
+                "0"
+              ]
+            ]
+          ]
+        ]
+      ]
+    ]
+  }
+}

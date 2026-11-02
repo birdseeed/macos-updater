@@ -1,0 +1,19 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "patched-licensing-local-fixture",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-11",
+  "workers_dev": false,
+  "preview_urls": false,
+  "vars": {
+    "ENVIRONMENT": "local-fixture",
+    "FIXTURE_MARKER": "PAT-2639-local-only",
+    "PROVIDER_MODE": "fake"
+  },
+  "d1_databases": [{
+    "binding": "FIXTURE_DB",
+    "database_name": "licensing-local-fixture",
+    "database_id": "00000000-0000-0000-0000-000000000000",
+    "remote": false
+  }]
+}

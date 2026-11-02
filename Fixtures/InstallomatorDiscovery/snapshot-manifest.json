@@ -1,0 +1,69 @@
+{
+  "schema": "fixture-snapshot-v1",
+  "repository": "Installomator/Installomator",
+  "commit": "1111111111111111111111111111111111111111",
+  "tree": "2222222222222222222222222222222222222222",
+  "parentCommit": null,
+  "priorCheckpointId": null,
+  "parserVersion": "literal-v1",
+  "policyVersion": "policy-v1",
+  "observedAt": 1000,
+  "complete": true,
+  "inventory": [
+    {
+      "path": "fragments/labels/dynamic-held.sh",
+      "kind": "regular",
+      "ancestors": [
+        {
+          "path": "fragments",
+          "kind": "directory"
+        },
+        {
+          "path": "fragments/labels",
+          "kind": "directory"
+        }
+      ],
+      "sha256": "1f7a1d2dc384f76e6e3e2c5c2c715953ca9725feec613ff2437d7ad3bbcfb10a",
+      "byteLength": 237
+    },
+    {
+      "path": "fragments/labels/literal-valid.sh",
+      "kind": "regular",
+      "ancestors": [
+        {
+          "path": "fragments",
+          "kind": "directory"
+        },
+        {
+          "path": "fragments/labels",
+          "kind": "directory"
+        }
+      ],
+      "sha256": "8cb8785af93bf9e8a7f6788eca93495ac655a1eb47401ec945573b9c4ea00808",
+      "byteLength": 235
+    },
+    {
+      "path": "fragments/labels/malformed-held.sh",
+      "kind": "regular",
+      "ancestors": [
+        {
+          "path": "fragments",
+          "kind": "directory"
+        },
+        {
+          "path": "fragments/labels",
+          "kind": "directory"
+        }
+      ],
+      "sha256": "637db7852c65cbfc6b67ecf3d3632c5dee525f09b627d48fcfa451d857102b00",
+      "byteLength": 249
+    }
+  ],
+  "license": {
+    "path": "LICENSE",
+    "sha256": "ea938190e03013466f80311ee9b3753b9e476b920d8290b9a90a0864edff522e",
+    "byteLength": 11359
+  },
+  "notices": [],
+  "attribution": "Installomator contributors; Apache-2.0. Labels here are synthetic modified test fixtures."
+}

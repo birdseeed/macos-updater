@@ -1,0 +1,49 @@
+# Manual-only controlled runner smoke; existing macOS product workflows stay paused.
+name: macOS private runner smoke
+
+"on":
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  smoke:
+    runs-on: [self-hosted, macOS, ARM64, patched-macos-01]
+    timeout-minutes: 5
+    env:
+      PATH: /usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
+    steps:
+      - name: Check runner, toolchain and local execution
+        shell: bash --noprofile --norc -euo pipefail {0}
+        run: |
+          [[ "${RUNNER_NAME:?}" == patched-macos-01 ]]
+          [[ "$(/usr/bin/uname -s)" == Darwin ]]
+          [[ "$(/usr/bin/uname -m)" == arm64 ]]
+          [[ "$(/usr/bin/id -u)" != 0 ]]
+          /usr/bin/sw_vers
+          /usr/bin/xcode-select -p
+          /usr/bin/xcrun swiftc --version
+          /usr/local/bin/node --version
+          /usr/local/bin/npm --version
+          /bin/df -h / "${RUNNER_TEMP:?}"
+          /usr/local/bin/node -e 'if (process.getuid() === 0 || process.platform !== "darwin" || process.arch !== "arm64") process.exit(1); console.log("Node executed as non-root on darwin/arm64")'
+
+          smoke_dir="$(/usr/bin/mktemp -d "${RUNNER_TEMP}/patched-runner-smoke.XXXXXX")"
+          readonly smoke_dir
+          [[ -d "$smoke_dir" && -O "$smoke_dir" ]]
+          trap '/bin/rm -rf -- "$smoke_dir"' EXIT
+          trap 'exit 130' INT
+          trap 'exit 143' TERM HUP
+          export TMPDIR="$smoke_dir/"
+          export CLANG_MODULE_CACHE_PATH="$smoke_dir/module-cache"
+          cat > "$smoke_dir/main.swift" <<'SWIFT'
+          import Foundation
+          import AppKit
+
+          let path = NSBezierPath(rect: NSRect(x: 0, y: 0, width: 1, height: 1))
+          precondition(path.bounds.width == 1)
+          print("Foundation/AppKit executable passed on \(ProcessInfo.processInfo.operatingSystemVersionString)")
+          SWIFT
+          /usr/bin/xcrun swiftc -module-cache-path "$smoke_dir/module-cache" \
+            "$smoke_dir/main.swift" -o "$smoke_dir/smoke"
+          "$smoke_dir/smoke"

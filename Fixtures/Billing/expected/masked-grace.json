@@ -1,0 +1,124 @@
+{
+  "derive": "delta",
+  "kinds": [
+    "insertPeriod",
+    "createGrace",
+    "updateSubscription"
+  ],
+  "sourceDelta": 1,
+  "grace": {
+    "original_paid_through": 1790812800,
+    "deadline": 1791417600,
+    "anchor_transaction_id": "txn_fixture_A1",
+    "failed_transaction_id": "txn_fixture_F1"
+  },
+  "selection": {
+    "state": "paid",
+    "paidThrough": 1791072000
+  },
+  "summary": {
+    "schemaVersion": 1,
+    "subscriptionID": "sub_fixture_A",
+    "status": "pastDue",
+    "paidThrough": 1790812800,
+    "renewsAt": null,
+    "cancellation": {
+      "state": "none",
+      "accessEnds": null
+    },
+    "payment": {
+      "state": "failed",
+      "graceDeadline": 1791417600
+    },
+    "refund": "none",
+    "endReason": null
+  },
+  "semanticEffects": [
+    {
+      "kind": "insertPeriod",
+      "row": {
+        "environment": "synthetic-sandbox",
+        "subscription_id": "sub_fixture_A",
+        "account_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "transaction_id": "txn_fixture_A1",
+        "starts_at": 1759276800,
+        "ends_at": 1790812800,
+        "price_id": "fixture-price-gbp-annual",
+        "currency": "GBP",
+        "quantity": 1,
+        "unit_amount": 1999,
+        "tax_inclusive": 1,
+        "origin": "existing"
+      }
+    },
+    {
+      "kind": "createGrace",
+      "row": {
+        "environment": "synthetic-sandbox",
+        "subscription_id": "sub_fixture_A",
+        "account_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "original_paid_through": 1790812800,
+        "deadline": 1791417600,
+        "anchor_transaction_id": "txn_fixture_A1",
+        "failed_transaction_id": "txn_fixture_F1",
+        "anchor_source_sha256": "1ff78b173668694f398ab756ea07b940274f8091d2a51e797b9c54b6e0bec09e",
+        "created_at": 1790899200,
+        "failure_read_generation": 1
+      }
+    },
+    {
+      "kind": "updateSubscription",
+      "row": {
+        "environment": "synthetic-sandbox",
+        "subscription_id": "sub_fixture_A",
+        "account_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "binding_id": "bind_fixture_A",
+        "mapping_revision": 1,
+        "provider_updated_at": 1790899200,
+        "status": "pastDue",
+        "cancellation_state": "none",
+        "cancellation_effective_at": null,
+        "renewal_generation": 1,
+        "next_charge_json": "{\"kind\":\"unavailable\",\"reason\":\"absent\"}",
+        "canonical_json": "{\"bindingID\":\"bind_fixture_A\",\"cancellation\":{\"effectiveAt\":null,\"state\":\"none\"},\"currentPeriod\":{\"endsAt\":1790812800,\"startsAt\":1759276800,\"transactionID\":\"txn_fixture_A1\"},\"id\":\"sub_fixture_A\",\"nextCharge\":{\"kind\":\"unavailable\",\"reason\":\"absent\"},\"renewalGeneration\":1,\"status\":\"pastDue\",\"updatedAt\":1790899200}",
+        "canonical_sha256": "4123b9c879aa06e784902d3fb3e5f585ebf29ade288136623c65976d2a2bccc9",
+        "revision": 2,
+        "notice_revision": 2
+      }
+    }
+  ],
+  "freshFieldsCheckedSeparately": [
+    "commit_nonce"
+  ],
+  "revisionDecision": {
+    "subscription": 2,
+    "notice": 2
+  },
+  "acceptedSnapshot": {
+    "canonical_json": "{\"adjustments\":[],\"disputes\":[],\"environment\":\"synthetic-sandbox\",\"fixture\":\"PAT-2646-snapshot-v1\",\"subscription\":{\"bindingID\":\"bind_fixture_A\",\"cancellation\":{\"effectiveAt\":null,\"state\":\"none\"},\"currentPeriod\":{\"endsAt\":1790812800,\"startsAt\":1759276800,\"transactionID\":\"txn_fixture_A1\"},\"id\":\"sub_fixture_A\",\"nextCharge\":{\"kind\":\"unavailable\",\"reason\":\"absent\"},\"renewalGeneration\":1,\"status\":\"pastDue\",\"updatedAt\":1790899200},\"transactions\":[{\"bindingID\":\"bind_fixture_A\",\"currency\":\"GBP\",\"id\":\"txn_fixture_A1\",\"origin\":\"existing\",\"period\":{\"endsAt\":1790812800,\"startsAt\":1759276800},\"priceID\":\"fixture-price-gbp-annual\",\"quantity\":1,\"status\":\"completed\",\"subscriptionID\":\"sub_fixture_A\",\"taxInclusive\":true,\"unitAmount\":1999,\"updatedAt\":1790899200},{\"bindingID\":\"bind_fixture_A\",\"currency\":\"GBP\",\"id\":\"txn_fixture_F1\",\"origin\":\"renewal\",\"period\":{\"endsAt\":1822348800,\"startsAt\":1790812800},\"priceID\":\"fixture-price-gbp-annual\",\"quantity\":1,\"status\":\"failed\",\"subscriptionID\":\"sub_fixture_A\",\"taxInclusive\":true,\"unitAmount\":1999,\"updatedAt\":1790899200}]}",
+    "canonical_sha256": "c73b3a2bc7c648e9e55dc3b9c80cae80354c73d07c058f56dfcb53d355fb4f83"
+  },
+  "acceptedEntities": [
+    {
+      "entity_kind": "subscription",
+      "entity_id": "sub_fixture_A",
+      "updated_at": 1790899200,
+      "canonical_json": "{\"bindingID\":\"bind_fixture_A\",\"cancellation\":{\"effectiveAt\":null,\"state\":\"none\"},\"currentPeriod\":{\"endsAt\":1790812800,\"startsAt\":1759276800,\"transactionID\":\"txn_fixture_A1\"},\"id\":\"sub_fixture_A\",\"nextCharge\":{\"kind\":\"unavailable\",\"reason\":\"absent\"},\"renewalGeneration\":1,\"status\":\"pastDue\",\"updatedAt\":1790899200}",
+      "canonical_sha256": "4123b9c879aa06e784902d3fb3e5f585ebf29ade288136623c65976d2a2bccc9"
+    },
+    {
+      "entity_kind": "transaction",
+      "entity_id": "txn_fixture_A1",
+      "updated_at": 1790899200,
+      "canonical_json": "{\"bindingID\":\"bind_fixture_A\",\"currency\":\"GBP\",\"id\":\"txn_fixture_A1\",\"origin\":\"existing\",\"period\":{\"endsAt\":1790812800,\"startsAt\":1759276800},\"priceID\":\"fixture-price-gbp-annual\",\"quantity\":1,\"status\":\"completed\",\"subscriptionID\":\"sub_fixture_A\",\"taxInclusive\":true,\"unitAmount\":1999,\"updatedAt\":1790899200}",
+      "canonical_sha256": "e03036c6901f271b77da18de611fa1238b8036f1d98fb1ce5b78740c5c84ab89"
+    },
+    {
+      "entity_kind": "transaction",
+      "entity_id": "txn_fixture_F1",
+      "updated_at": 1790899200,
+      "canonical_json": "{\"bindingID\":\"bind_fixture_A\",\"currency\":\"GBP\",\"id\":\"txn_fixture_F1\",\"origin\":\"renewal\",\"period\":{\"endsAt\":1822348800,\"startsAt\":1790812800},\"priceID\":\"fixture-price-gbp-annual\",\"quantity\":1,\"status\":\"failed\",\"subscriptionID\":\"sub_fixture_A\",\"taxInclusive\":true,\"unitAmount\":1999,\"updatedAt\":1790899200}",
+      "canonical_sha256": "e9ee56d5074119e8b76d36a18ba232c1ce24065546d48f9266ee1e03c8ca8425"
+    }
+  ]
+}

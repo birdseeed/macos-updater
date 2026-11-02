@@ -1,0 +1,151 @@
+{
+  "originalSHA256": "c7d87961e940d3aef0e11dcdcf8a53db2bb7f376a7c90f960bbd5ad533b3de42",
+  "migrationSHA256": "1c830fec52ad7374c8619bce7969c40f4f68e9cf38c48b2187122d5fc342af14",
+  "contract": {
+    "tests": [
+      {
+        "name": "request alone creates no account/session and returns generic fresh challenges",
+        "astSHA256": "3a1b93500c0d7bd0117be6ef1d7d74a9fcfdc8c33675a4effa7396cd96112d4e"
+      },
+      {
+        "name": "sequential repeated request entropy refuses uniformly and preserves the initial usable challenge",
+        "astSHA256": "9ff3375f47ee0018ce61a21dccb40180dbf30663611300a3478ae147204fed93"
+      },
+      {
+        "name": "concurrent repeated request entropy admits exactly one fresh challenge and refuses every collision",
+        "astSHA256": "143e3919f365e4a1139d266ac4dcdd032dde73619fd6e758927a31146221702d"
+      },
+      {
+        "name": "N-way consume commits exactly one session, consume nonce, guard and audit",
+        "astSHA256": "d0ce4099ae91d5821f32580438d0dede3bb98a1dab7a41b6d698993f3caadd3f"
+      },
+      {
+        "name": "same-email concurrent sign-ins create one account with purpose-separated sessions",
+        "astSHA256": "b6575d28e1ca835c902a35217698c65accd1cbb029b1550ecac7ca6036ef6b22"
+      },
+      {
+        "name": "concurrent replacement challenges leave at most the latest eligible one consumable",
+        "astSHA256": "4ebc80968e104603766b53e885ff5bc9ed405d77bc64ecfa0fb6427d2d3fb8e6"
+      },
+      {
+        "name": "expiry boundary refuses at ten minutes and preserves account/session counts",
+        "astSHA256": "046106794819aa3e1892fb6878414ade62a1cc493d7ae30035352ecfbfe5be7c"
+      },
+      {
+        "name": "five wrong attempts exhaust challenge; sixth correct cannot create session",
+        "astSHA256": "581d50a83a6ee480bc96f8165024c80af1aa3d6afe4b94915e34a185a230f15d"
+      },
+      {
+        "name": "wrong purpose/unknown challenge refuse without creating accounts",
+        "astSHA256": "307303a32dfc6e51a6a6450d147542d9b0c9e3f22f54f720c1d7150bfd4eb70e"
+      },
+      {
+        "name": "same address lowercases but dots and plus aliases never merge accounts",
+        "astSHA256": "b16f8e46a7f5dc23d9f959a04686f91b7c07d64c88ae92617720c3a994327624"
+      },
+      {
+        "name": "reauth binds current account/session and only changes authentication timestamp",
+        "astSHA256": "c6e18c3917b09ddc6c61554a3bec993df52d7369eaf523254b7974ad10d96219"
+      },
+      {
+        "name": "revoked or changed target session refuses pending reauth without partial write",
+        "astSHA256": "5f0056532a2b886e1835643e329dc4bc5d634f55ed79cfcce9860fec27a05293"
+      },
+      {
+        "name": "app access expires at 15 minutes; refresh rotates and retry revokes winner",
+        "astSHA256": "4550308946abb55a28100fdf5bc3fdf6206ccd7710d55316c9b1a0cb0c3264a2"
+      },
+      {
+        "name": "N-way refresh never leaves two valid refresh tokens",
+        "astSHA256": "ae3e14413a4d317c5d6f34b8fbd8e70fad5aeff8b066e62e7d348d8a36592507"
+      },
+      {
+        "name": "older than immediate previous refresh replay still revokes",
+        "astSHA256": "6f95799f13d1bef425184b5f882e15beb5f15bc8a51c52c5419f92bf634e4862"
+      },
+      {
+        "name": "app refresh expires at 90 days idle and web never extends 12h absolute expiry",
+        "astSHA256": "c21f431a59d8f808091d701fdf7c301c85701dfab057265903e326e5b214b3e6"
+      },
+      {
+        "name": "wrong session/account copied tokens never authenticate or revoke foreign session",
+        "astSHA256": "9b0b2ec8b550d13325185c3ef6f26e02a2739ae13dab9d21d7eb210aa87bdb3d"
+      },
+      {
+        "name": "account mutation CAS winner writes exactly one audit/dependent row fenced to nonce",
+        "astSHA256": "001e3297bda617a3437bfeb60e38b94899ff4a15541e0a5bd6e1ceeaa3d6c0b9"
+      },
+      {
+        "name": "stale guard and reused nonce never leak dependent writes",
+        "astSHA256": "8eac430728e1efbf45fdc869cc2003db6b9a4b9e72c55d8819bec3b08914b420"
+      },
+      {
+        "name": "audit and required dependent failure roll back account CAS atomically",
+        "astSHA256": "c201abed1cd1130b5aef9979779a7e58791ad0f5819e99bf75a15db6d17595b1"
+      },
+      {
+        "name": "consume audit failure rolls back consume/account/session then valid retry succeeds",
+        "astSHA256": "d9df4dd42ce2fa64bc67f0668dfa931e2c19a34be1d1696893222c3fad720a88"
+      },
+      {
+        "name": "email minute/hour/day ceilings return fresh generic challenges and prevent extra sends",
+        "astSHA256": "85b7dfdedc50c3d546e0b11ced3298d5797172671730430d5e9525d3cbf06bee"
+      },
+      {
+        "name": "IP hourly/daily ceiling independent of normalized email",
+        "astSHA256": "b522fb46843116327de429e3aae5a7041936609b01ad7ae492ccdf58e6bc958e"
+      },
+      {
+        "name": "undeliverable and database-failed requests stay indistinguishable and no account created",
+        "astSHA256": "a8984491bf9e93f9fcf1aec6ba7ae16ba65a80ee5770f559a293e1b9ae7cf48d"
+      },
+      {
+        "name": "storage and audit/logs contain no code/raw tokens/email/source IP",
+        "astSHA256": "78c3c88c0a7ef9ef8cede924c4312eb73001996bd8e07b6cfe3682985d51a9bc"
+      },
+      {
+        "name": "repeated fixture entropy/nonce collision refuses with no second grant",
+        "astSHA256": "6c350bab8c2a00c384e50b1de158971b304c8be7ef86bd88d1f65f0baeb9c6d7"
+      },
+      {
+        "name": "non-synthetic recipient gets generic accepted response but never a usable challenge",
+        "astSHA256": "d8a16daa766fe7c4d8cf2d1a91997783defd23004f35ee929ba546a729ff599c"
+      },
+      {
+        "name": "reauth rejects same-account changed session, wrong app/web purpose, and unknown session",
+        "astSHA256": "e68ae7eb817e6489509b112c4c337b91f3d707acc7b7d3e58d7ccf82b7ec8946"
+      },
+      {
+        "name": "N-way email and IP send limits are persisted atomically",
+        "astSHA256": "333048221eab8e3f4f9040b131c40e6daad882536dbcae4874e41adbd0d7c5ac"
+      },
+      {
+        "name": "repeated entropy during consume or refresh never mints a second token set",
+        "astSHA256": "c9e89f6ce4fe79923b3a684f96c242d64c60e97253f336ac5193c9a824991636"
+      },
+      {
+        "name": "web reauth preserves absolute deadline and creates no session",
+        "astSHA256": "b5aa6185057db7aa026e00b3aa4c984837b716acbc3bf7ffce0e9d74c9580206"
+      }
+    ],
+    "helpers": {
+      "count": "9f41650e67f50c2d4f7188b5679138bd63685d984a3f23ad4ce29e6d6e13c370",
+      "snapshot": "ab50f75ecaa1e57d590ad8705c0953178a0572499ada94507aa1faa9c15a4242",
+      "email": "b7fd3ea09cb56791e306a7576150a7311ae47080cc38abc3916b38a2441b74cf",
+      "post": "9983193618bb1bdbbbe3149c4431d017be82cb0a6f00a8c189c3310c3d087d8b",
+      "request": "517bcb845230783c0f8fef9fc589d66965fb2788f19ae054e0d18e3eaf20591f",
+      "consume": "5ca84be43fe6d6574c069810c53cf9510ffa0751b30bc0cacef9656bdcead8b0",
+      "signedIn": "a943c0e79fbecc19fa213bb923ba30197ffbdaaa05a1ee0316f94a35cdedfa27",
+      "credential": "d57c0db2d21be0a2fac25ea22560340e39c318457d595b5d99ffbead55adf304",
+      "binding": "8f50a6a4b840f95da248ef102744794de3756cdafc2909e268737c7e4e6f4d16",
+      "refusedConsume": "51d60334ffb8fc57c85829e3a9ca6bca7df557a731727893a533308eda6c2a58"
+    },
+    "sql": [
+      "migrations/0001_accounts.sql",
+      "CREATE TRIGGER fixture_fail_signin_audit BEFORE INSERT ON account_audit WHEN NEW.action='sign-in' BEGIN SELECT RAISE(ABORT,'fixture audit denied'); END;",
+      "DROP TRIGGER fixture_fail_signin_audit;",
+      "CREATE TRIGGER fixture_fail_request BEFORE INSERT ON challenges BEGIN SELECT RAISE(ABORT,'fixture request denied'); END;",
+      "DROP TRIGGER fixture_fail_request;"
+    ]
+  }
+}

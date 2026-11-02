@@ -1,0 +1,79 @@
+name: Disposable CI diagnostics
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  diagnostics:
+    if: ${{ vars.PATCHED_MACOS_ACTIONS_ENABLED == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
+    runs-on: [self-hosted, macOS, ARM64, patched-macos-01]
+    timeout-minutes: 3
+    steps:
+      - name: Confirm approved macOS runner
+        run: |
+          test "$RUNNER_NAME" = patched-macos-01
+          test "$RUNNER_OS" = macOS
+          test "$RUNNER_ARCH" = ARM64
+          test "$(id -u)" -ne 0
+          printf 'Runner: %s\nCommit: %s\n' "$RUNNER_NAME" "$GITHUB_SHA"
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6.0.0
+        with:
+          node-version: '24.21.0'
+          package-manager-cache: false
+      - name: Record diagnostic platform
+        run: |
+          sw_vers
+          uname -m
+          /usr/bin/swift --version
+          /usr/bin/lldb --version
+      - name: Build unchanged disposable checks
+        run: /usr/bin/swift build --product patched-disposable-proof-checks
+      - name: Observe direct executable and Swift launcher once each
+        shell: bash
+        run: |
+          mkdir -p .build/disposable-ci-diagnostics
+          failed=0
+          for variant in direct swift-run; do
+            case "$variant" in
+              direct) target=(.build/debug/patched-disposable-proof-checks) ;;
+              swift-run) target=(/usr/bin/swift run --skip-build patched-disposable-proof-checks) ;;
+            esac
+            receipt=".build/disposable-ci-diagnostics/$variant.status"
+            # LLDB's own status does not establish the child's exit status.
+            # The path is chosen only by the fixed variants above.
+            record="script p = lldb.debugger.GetSelectedTarget().GetProcess(); s = p.GetState(); value = str(p.GetExitStatus()) if s == lldb.eStateExited else 'not-exited:' + str(s); print('DIAGNOSTIC_PROCESS_RESULT ' + value); open('$receipt', 'x').write(value + '\\n')"
+            echo "Diagnostic variant: $variant"
+            if /usr/bin/lldb --no-lldbinit --batch \
+              -o 'settings set target.process.stop-on-exec false' \
+              -o run \
+              -o 'process status' \
+              -o 'image list' \
+              -o "$record" \
+              -k 'process status' \
+              -k 'thread backtrace all' \
+              -k 'image list' \
+              -k "$record" \
+              -- "${target[@]}"; then
+              debugger_status=0
+            else
+              debugger_status=$?
+            fi
+            echo "Diagnostic debugger exit status ($variant): $debugger_status"
+            if [[ -f "$receipt" ]]; then
+              process_status=$(cat "$receipt")
+              echo "Diagnostic recorded process result ($variant): $process_status"
+            else
+              process_status=missing
+              echo "::error::No process result for $variant; inspect the debugger error above."
+            fi
+            if [[ "$debugger_status" != 0 || "$process_status" != 0 ]]; then
+              failed=1
+              echo "::error::Diagnostic $variant did not observe a successful child exit."
+            fi
+          done
+          exit "$failed"

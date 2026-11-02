@@ -1,0 +1,69 @@
+ 
+{
+  "schema": "fixture-catalogue-v2",
+  "domain": "im.patched.catalogue.v2",
+  "catalogueID": "test-catalogue",
+  "keyID": "test-key-1",
+  "sequence": 2,
+  "issuedAt": 1800000000,
+  "expiresAt": 1800003600,
+  "minimumClientProtocol": 2,
+  "minimumClientBuild": 100,
+  "policyDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "entries": [
+    {
+      "identity": {
+        "productID": "test-product",
+        "releaseID": "release-0001",
+        "bundleID": "im.patched.fixture",
+        "teamID": "TESTTEAM01",
+        "edition": "standard",
+        "generation": "one",
+        "channel": "stable"
+      },
+      "release": {
+        "version": "1.2.3",
+        "comparator": "numeric-dotted-u32-v1"
+      },
+      "compatibility": {
+        "platform": "macOS",
+        "minimumOS": "13.0",
+        "maximumOS": null,
+        "architectures": [
+          "arm64",
+          "x86_64"
+        ]
+      },
+      "source": {
+        "routeID": "fixture-route",
+        "routeVersion": "v1",
+        "url": "https://downloads.example.test/fixture.dmg",
+        "redirectHosts": [
+          "cdn.example.test"
+        ],
+        "observedAt": 1799999940
+      },
+      "artifact": {
+        "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "byteLength": 1024
+      },
+      "evidence": {
+        "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "byteLength": 256,
+        "policyVersion": "p1",
+        "checkerVersion": "c1",
+        "environmentVersion": "e1",
+        "verifiedAt": 1799999940,
+        "validUntil": 1800007200
+      },
+      "installer": {
+        "method": "dmg-app",
+        "version": "v1",
+        "interaction": "ask",
+        "restart": "none",
+        "coordination": "exclusive-app"
+      }
+    }
+  ],
+  "withdrawals": []
+}	

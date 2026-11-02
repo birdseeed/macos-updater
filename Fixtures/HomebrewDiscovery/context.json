@@ -1,0 +1,60 @@
+{
+  "receipt": {
+    "locator": "https://formulae.brew.sh/api/cask/fixture-editor.json",
+    "startedAt": 1800000000,
+    "finishedAt": 1800000001,
+    "statusCode": 200,
+    "etag": "\"fixture-etag\"",
+    "lastModified": "Synthetic validator, not a date assertion",
+    "generationTime": null
+  },
+  "policy": {
+    "token": "fixture-editor",
+    "tap": "homebrew/cask",
+    "sourceLocator": "https://formulae.brew.sh/api/cask/fixture-editor.json",
+    "policySha256": "3333333333333333333333333333333333333333333333333333333333333333",
+    "routeSha256": "4444444444444444444444444444444444444444444444444444444444444444",
+    "identity": {
+      "productId": "fixture.editor",
+      "bundleId": "test.example.fixture-editor",
+      "developerTeamId": "SYNTHETIC1",
+      "channel": "stable",
+      "edition": "standard",
+      "generation": "2026"
+    },
+    "comparator": "numeric-dotted-v1",
+    "allowedArtifactURLs": [
+      "https://downloads.example.test/editor-2.0.0-arm64.dmg",
+      "https://downloads.example.test/editor-2.0.0-x64.zip"
+    ],
+    "allowedRedirectURLs": [],
+    "architectures": [
+      "arm64"
+    ],
+    "minOS": "13.0.0",
+    "maxOS": "16.9.9",
+    "installer": "single-app-dmg-or-zip",
+    "appArtifact": "Fixture Editor.app"
+  },
+  "variant": {
+    "key": "base",
+    "architecture": "arm64",
+    "osVersion": "15.0.0",
+    "identity": {
+      "productId": "fixture.editor",
+      "bundleId": "test.example.fixture-editor",
+      "developerTeamId": "SYNTHETIC1",
+      "channel": "stable",
+      "edition": "standard",
+      "generation": "2026"
+    },
+    "comparator": "numeric-dotted-v1"
+  },
+  "clock": {
+    "now": 1800000100
+  },
+  "history": {
+    "previous": null
+  },
+  "artifactObservation": null
+}

@@ -1,0 +1,11 @@
+These literal synthetic snapshots and expectations implement the selected Phase A contract. Expected values are authored independently of refusing service stubs. They do not represent Paddle, payment, account ownership or granting authority. Original B1 vectors are unchanged.
+
+Phase A contains independent checks and deliberately refusing source/display stubs. It is not implementation acceptance, an official red run, a hosted D1 claim or release authority. The parent alone owns the official red/freeze gate.
+
+The pure derivation ledgers may describe an already established read claim; actual fresh-service setup copies these rows and clears claim fields. Service checks acquire claim/history/audit/receipt identities through the actual BillingLifecycle service before private provider callbacks. Initial failure proof and immutable anchor hashes remain separately retained. Accepted subscription observations and cancellation bytes are explicit; metadata updates are included in exact effect expectations.
+
+Budget labels are separate: pure policy boundaries (364 effect rows /1024 statements /100 binds), actual locked backend capacity (1024 commit and final-error rollback), and actual operation batch metadata captured from the real binding. Count/aggregate-byte storage controls use domain/FK-valid administrative rows and make no claim that every maximum distribution is a coherent reachable provider history. Canonical rows must still pass the closed source validator. SQLite INTEGER affinity can coerce numeric strings; strict wire grammar rejects those tokens independently.
+
+Native service-envelope checks use the selected new test registrar's `--verify-billing-lease` development argument. They pass exact service bytes to the existing SignedLease verifier with an independently specified binding; a fixed valid corpus lease and a flipped signature establish positive/negative controls. They do not launch the application.
+
+Preparatory invocations, generation commands, failures and repair explanations are retained outside the checkout under the PAT-2646 evidence directory's phase-a-preparation folder. Original B1 vectors, old issuer/auth modules, migrations and runners remain unchanged; scripts/verify-billing.sh preserves its original discovery and command order while accumulating failure status across all suites.

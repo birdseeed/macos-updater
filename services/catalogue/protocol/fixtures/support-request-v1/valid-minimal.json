@@ -1,0 +1,22 @@
+{
+  "schema": "fixture-support-request-v1",
+  "clientRequestID": "00000000-0000-4000-8000-000000000001",
+  "submittedAt": 1800000000,
+  "app": {
+    "displayName": {
+      "value": "Fixture App",
+      "provenance": "userSupplied"
+    },
+    "bundleID": null,
+    "version": null,
+    "vendorURL": null
+  },
+  "notes": null,
+  "consent": {
+    "schema": "fixture-support-consent-v1",
+    "purpose": "coverage-research",
+    "destination": "patched-catalogue-support",
+    "presentedAt": 1799999998,
+    "acceptedAt": 1799999999
+  }
+}
